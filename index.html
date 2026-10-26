@@ -1,0 +1,2734 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>백잡사전 — 28가지 질문으로 나의 N잡 찾기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Song+Myung&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5F2EA; --card:#FFFFFF; --ink:#1C2721; --muted:#66716A;
+  --green:#1F5E42; --green-deep:#143D2C; --green-soft:#E7EEE6;
+  --stamp:#C0391B; --line:#DCD7C9; --gold:#B98A2E;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:'Noto Sans KR',-apple-system,'Malgun Gothic',sans-serif;
+  background:var(--paper); color:var(--ink); font-size:18px; line-height:1.6;
+  min-height:100vh;
+  background-image:radial-gradient(#00000008 1px,transparent 1px);
+  background-size:22px 22px;
+}
+.wrap{max-width:720px;margin:0 auto;padding:24px 20px 64px}
+header.top{display:flex;align-items:center;justify-content:space-between;padding:6px 0 18px;border-bottom:2px solid var(--ink)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.05em}
+.brand .seal-mini{width:30px;height:30px;border:2.5px solid var(--stamp);border-radius:50%;display:grid;place-items:center;color:var(--stamp);font-family:'Song Myung',serif;font-size:15px;transform:rotate(-8deg)}
+.top-note{font-size:13px;color:var(--muted)}
+
+/* ---------- 인트로 ---------- */
+.hero{padding:56px 0 24px;text-align:center;position:relative}
+.hero .seal{
+  width:92px;height:92px;margin:0 auto 26px;border:3.5px solid var(--stamp);border-radius:50%;
+  display:grid;place-items:center;color:var(--stamp);font-family:'Song Myung',serif;
+  font-size:40px;line-height:1;transform:rotate(-10deg);position:relative;
+  box-shadow:inset 0 0 0 2px var(--paper), inset 0 0 0 4px var(--stamp);
+}
+.hero .seal::after{content:'';position:absolute;inset:5px;border:1px dashed #C0391B66;border-radius:50%}
+h1.title{font-family:'Song Myung',serif;font-weight:400;font-size:clamp(34px,7vw,48px);line-height:1.25;letter-spacing:-.01em}
+h1.title em{font-style:normal;color:var(--green);border-bottom:6px solid var(--gold);border-bottom-left-radius:2px}
+.hero p.sub{margin:18px auto 0;max-width:46ch;color:var(--muted);font-size:17px}
+.badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:26px 0 34px}
+.badges span{background:var(--card);border:1.5px solid var(--line);border-radius:999px;padding:7px 16px;font-size:14.5px;color:var(--ink)}
+.badges b{color:var(--green)}
+button.cta{
+  font:inherit;font-weight:700;font-size:21px;color:#fff;background:var(--green);
+  border:none;border-radius:14px;padding:19px 58px;cursor:pointer;
+  box-shadow:0 4px 0 var(--green-deep);transition:transform .12s, box-shadow .12s;
+}
+button.cta:active{transform:translateY(3px);box-shadow:0 1px 0 var(--green-deep)}
+button.cta:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.fineprint{margin-top:16px;font-size:13.5px;color:var(--muted)}
+
+/* ---------- 질문 ---------- */
+.progress{position:sticky;top:0;z-index:5;background:var(--paper);padding:14px 0 10px;margin:0 -20px;padding-left:20px;padding-right:20px;border-bottom:1.5px solid var(--line)}
+.progress .bar{height:8px;background:#E4DFD0;border-radius:99px;overflow:hidden}
+.progress .fill{height:100%;background:var(--green);border-radius:99px;transition:width .25s ease}
+.progress .pmeta{display:flex;justify-content:space-between;font-size:13.5px;color:var(--muted);margin-top:7px}
+.progress .layer-chip{color:var(--green);font-weight:700}
+.qcard{margin-top:30px;background:var(--card);border:2px solid var(--ink);border-radius:18px;padding:30px 26px 26px;box-shadow:6px 6px 0 #1C272110}
+.q-no{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--green);letter-spacing:.06em}
+.q-no .n{background:var(--green-soft);border-radius:8px;padding:2px 10px}
+h2.q-text{font-family:'Song Myung',serif;font-weight:400;font-size:clamp(23px,4.4vw,30px);line-height:1.42;margin:14px 0 6px}
+.q-hint{font-size:15px;color:var(--muted);margin-bottom:20px}
+.opts{display:flex;flex-direction:column;gap:12px}
+button.opt{
+  font:inherit;text-align:left;background:var(--paper);border:2px solid var(--line);
+  border-radius:14px;padding:16px 18px;cursor:pointer;min-height:64px;
+  display:flex;align-items:center;gap:12px;transition:border-color .12s, background .12s, transform .08s;
+}
+button.opt:hover{border-color:var(--green)}
+button.opt:active{transform:scale(.99)}
+button.opt:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+button.opt.sel{border-color:var(--green);background:var(--green-soft)}
+button.opt.sel .tick{background:var(--green);border-color:var(--green)}
+button.opt.sel .tick::after{content:'';display:block;width:9px;height:5px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg) translate(2px,-1px)}
+button.opt.dim{opacity:.45;cursor:not-allowed}
+button.opt .tick{flex:0 0 22px;width:22px;height:22px;border:2px solid var(--line);border-radius:50%;display:grid;place-items:center;background:#fff}
+.opts.multi button.opt .tick{border-radius:7px}
+.opt-main{font-weight:500;flex:1}
+.opt-tag{font-size:13px;color:var(--muted);background:#EFECE2;border-radius:8px;padding:3px 9px;white-space:nowrap;margin-left:8px}
+.qnav{display:flex;gap:12px;margin-top:22px}
+button.nav{font:inherit;font-size:16.5px;font-weight:700;border-radius:12px;padding:13px 26px;cursor:pointer;background:#fff;border:2px solid var(--line);color:var(--ink)}
+button.nav.primary{background:var(--green);border-color:var(--green);color:#fff;box-shadow:0 3px 0 var(--green-deep)}
+button.nav:disabled{opacity:.4;cursor:not-allowed}
+button.nav:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.lic-input{margin-top:14px}
+.lic-input input{
+  font:inherit;width:100%;border:2px solid var(--line);border-radius:12px;background:var(--paper);
+  padding:14px 16px;font-size:17px;
+}
+.lic-input input:focus{outline:none;border-color:var(--green)}
+.lic-input .cap{font-size:13.5px;color:var(--muted);margin-top:6px}
+
+/* ---------- 채점 연출 ---------- */
+.stamping{text-align:center;padding:90px 0 70px}
+.stamping .seal{width:120px;height:120px;margin:0 auto 30px;border:4px solid var(--stamp);border-radius:50%;display:grid;place-items:center;color:var(--stamp);font-family:'Song Myung',serif;font-size:44px;animation:stampIn .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes stampIn{0%{transform:rotate(-25deg) scale(2.2);opacity:0}70%{transform:rotate(-8deg) scale(.95);opacity:1}100%{transform:rotate(-10deg) scale(1)}}
+.stamping p{font-family:'Song Myung',serif;font-size:24px}
+.stamping .d{font-size:15px;color:var(--muted);font-family:'Noto Sans KR',sans-serif;margin-top:10px}
+
+/* ---------- 결과 ---------- */
+.res-head{padding:34px 0 8px}
+.res-head .seal-mini{width:44px;height:44px;border:3px solid var(--stamp);border-radius:50%;display:grid;place-items:center;color:var(--stamp);font-family:'Song Myung',serif;font-size:20px;transform:rotate(-8deg);margin-bottom:14px}
+h2.res-title{font-family:'Song Myung',serif;font-weight:400;font-size:clamp(26px,5vw,36px);line-height:1.35}
+.res-sub{color:var(--muted);margin:10px 0 26px;font-size:15.5px}
+.card{position:relative;background:var(--card);border:2px solid var(--ink);border-radius:18px;padding:24px 22px;margin-bottom:18px;box-shadow:5px 5px 0 #1C272110}
+.card.top1{border-width:3px;box-shadow:8px 8px 0 #C0391B18}
+.rank-line{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+.rank{font-family:'Song Myung',serif;color:var(--gold);font-size:15px;font-weight:700;letter-spacing:.04em}
+.jname{font-family:'Song Myung',serif;font-size:clamp(22px,4.2vw,27px);line-height:1.3}
+.jtype{display:inline-block;font-size:13px;font-weight:700;color:var(--green);background:var(--green-soft);border-radius:8px;padding:3px 10px;margin-top:8px}
+.jconcept{color:var(--ink);margin-top:10px;font-size:16.5px}
+.jincome{margin-top:12px;font-weight:700;color:var(--green);font-size:16px}
+.jincome .lbl{font-weight:400;color:var(--muted);font-size:14px}
+.metas{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+.metas span{font-size:13px;border:1.5px solid var(--line);border-radius:8px;padding:3px 9px;background:#FBFAF5;color:var(--muted)}
+.why{margin-top:16px;border-top:1.5px dashed var(--line);padding-top:14px}
+.why li{list-style:none;font-size:15.5px;padding-left:26px;position:relative;margin-bottom:6px}
+.why li::before{content:'✓';position:absolute;left:2px;color:var(--green);font-weight:700}
+.cond{margin-top:12px;font-size:14.5px;color:#8A5A14;background:#FBF3DF;border-radius:10px;padding:9px 13px}
+.stamp{
+  position:absolute;top:16px;right:16px;width:78px;height:78px;border:3px solid var(--stamp);
+  border-radius:50%;display:grid;place-items:center;color:var(--stamp);
+  font-family:'Song Myung',serif;font-size:16px;line-height:1.25;text-align:center;
+  transform:rotate(9deg);opacity:.92;pointer-events:none;
+  box-shadow:inset 0 0 0 1.5px var(--paper), inset 0 0 0 3.5px var(--stamp);
+  mix-blend-mode:multiply;
+}
+.stamp small{display:block;font-size:10.5px;font-family:'Noto Sans KR',sans-serif;letter-spacing:.08em}
+.again{display:flex;justify-content:center;margin:34px 0 10px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:480px){.wrap{padding:16px 14px 48px}.qcard{padding:24px 18px 20px}.stamp{width:64px;height:64px;font-size:13px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><span class="seal-mini">百</span>백잡사전 진단소</div>
+    <div class="top-note">나에게 맞는 N잡 2~6개</div>
+  </header>
+  <main id="app"></main>
+</div>
+
+<script>
+// ============================================================
+// 백잡사전 N잡 진단 — 채점 엔진 참조 구현 v1.7 (scoring.js)
+// 명세: baekjap-diagnosis-logic 문서와 1:1 대응
+// 사용: const { recommend } = require('./scoring.js');
+//       const jobs = require('./jobs.json');
+//       const result = recommend(answers, jobs);
+// ============================================================
+
+// ---- 상수 테이블 (명세 §4) ----
+const PLACE_SETS = { 1: ['재택', '온라인'], 2: ['재택', '온라인', '방문', '점포'], 3: null };
+const TIME_ORDER = ['주5h 미만', '주5~15h', '주15~30h', '주30h 이상'];
+const COST_ORDER = ['₩', '₩₩', '₩₩₩', '₩₩₩₩', '₩₩₩₩₩'];
+const LIC_SETS   = { 1: ['불필요'], 2: ['불필요', '교육이수'], 3: null };
+
+const EXP_MAP = { 1: [1, 2, 3], 2: [9, 10], 3: [4, 5], 4: [7], 5: [8], 6: [6, 1] };
+const TYPE_FACE_ON = [3, 4, 5, 8, 9];   // 대면 친화
+const TYPE_SOLO    = [1, 6, 7];         // 비대면 친화
+const TYPE_MANUAL  = [7, 8, 9];         // 매뉴얼형
+const TYPE_AUTON   = [1, 2, 6, 10];     // 자율형
+const TYPE_NUMERIC = [1, 2, 10];        // 숫자 성과형
+const TYPE_CARE    = [4, 5, 8];         // 돌봄·보람형
+const IMAGE_RISK   = ['022', '023', '090']; // 이미지 리스크 잡 (운세·펫택시 계열) — 설정값, 조사 진행 시 수정
+
+// [5층] 활동 여건 잡 집합 (잡명 기반 파생 속성 — v0.3 신설 축)
+const OUTDOOR_JOBS = ['034', '038', '042', '043', '066', '067', '068', '081']; // 야외 활동형
+const VEHICLE_JOBS = ['045', '077', '085', '087', '088', '090'];               // 차량 활용형
+const SENIOR_JOBS  = ['027', '028', '033', '040', '045', '054', '055', '071', '073']; // 시니어 대상
+const KIDS_JOBS    = ['029', '032', '041', '075', '078'];                      // 아동·청소년 대상
+const INST_JOBS    = ['012','017','018','019','021','031','042','043','044','061','062','063','071','073','076','092','093']; // 기관·단체 통로형
+const TRAVEL_JOBS  = ['045', '077', '096', '100'];                    // 여행·숙박·손님 맞이형
+const CAPITAL_JOBS = ['047', '094', '095', '096', '097', '098', '099']; // 자본·시설 투자형 (하향군)
+const SIMPLE_JOBS  = ['005', '006', '008', '051', '095']; // 저진입 단순 과업·재판매형 (v0.5 하향군)
+const PRO_JOBS     = ['025','020','009','011','013','014','010','047','030','026','096','019','018','024','055','056','080']; // 전문성·경력 연결형 (v0.5 상향군)
+const PET_JOBS     = ['081', '082', '083', '084', '090'];             // 반려동물 돌봄형
+
+// [v0.7] 시장 선호도 상위 잡 — 사용자 지정: 조사 시트 판정이 못 잡은 "사람들이 찾고 좋아하는" 잡 6종.
+// 어떤 응답에서도 상시 +1.0 (매력도 프리미엄과 별개의 시장 선호도 프리미엄)
+const POPULAR_JOBS = ['021', '037', '043', '056', '061', '100'];
+// [v0.7] Q28 선호 분야 → 온램프 대상 잡 (선택한 분야와 직결되는 잡에 +2.5)
+const Q28_PREF_MAP = { 1: ['037'], 2: ['021'], 3: ['043'], 4: ['056', '061'], 5: ['100'] }; // ⑥ 없음 = 보정 없음
+
+const Q8_BANDS = { 1: [0, 30], 2: [30, 100], 3: [100, 300], 4: [300, Infinity] };
+
+// Q14 자격명 → 유형 매핑 사전 (확정 과제 §7-6: 운영 중 계속 확장)
+const LICENSE_TYPE_MAP = [
+  ['요양', 8], ['간병', 8], ['산후', 8], ['도우미', 8], ['복지', 8], ['사회복지', 8],
+  ['강사', 4], ['교육', 4], ['한국어', 4], ['체험', 4],
+  ['스포츠', 5], ['운동', 5], ['요가', 5], ['필라테스', 5], ['골프', 5], ['안마', 5],
+  ['심리', 3], ['상담', 3], ['커리어', 3], ['직업', 3],
+  ['전기', 7], ['소방', 7], ['용접', 7], ['에어컨', 7], ['가전', 7], ['목공', 7], ['농업', 7], ['농장', 7], ['드론', 7], ['안전', 7], ['건설', 7],
+  ['미용', 9], ['펫', 9], ['동물', 9], ['운전', 9], ['정리수납', 9], ['가사', 9],
+  ['장례', 9], ['택시', 9], ['탁송', 9],
+  ['체육', 5], ['수목', 7], ['조경', 7], ['식물', 7], ['병해충', 7], ['농장관리', 7],
+];
+
+// ---- 1층: Knockout 필터 (명세 §4.1) ----
+function layer1Pass(a, j) {
+  let fails = 0; const why = [];
+  const ps = PLACE_SETS[a.Q1];
+  if (ps && !ps.includes(j.place)) { fails++; why.push('활동 반경'); }
+  if (a.Q2 < 4 && TIME_ORDER.indexOf(j.time) > a.Q2 - 1) { fails++; why.push('주간 시간'); }
+  if (a.Q3 === 1 && j.flex === '고정') { fails++; why.push('시간 통제'); }
+  const ls = LIC_SETS[a.Q4];
+  if (ls && !ls.includes(j.license)) { fails++; why.push('자격·교육'); }
+  if (a.Q5 < 3 && COST_ORDER.indexOf(j.cost) > a.Q5 - 1) { fails++; why.push('시작 비용'); }
+  if (a.Q6 === 1 && j.stamina !== '하') { fails++; why.push('체력'); }
+  if (a.Q6 === 2 && j.stamina === '상') { fails++; why.push('체력'); }
+  return { ok: fails === 0, fails, why };
+}
+
+// ---- 채점 (명세 §4.2~4.4) ----
+function scoreJob(a, j, typeScore) {
+  let s = typeScore.get(j.type_no) || 0;
+  const reasons = [];
+
+  // [2층] Q7 첫 수입 시기
+  const inc = j.income;
+  if (a.Q7 === 1) { s += (inc === '건별' || inc === '시간제') ? 0.75 : (inc === '자산형' ? -0.75 : 0); }
+  if (a.Q7 === 2) { s += inc === '월정액' ? 0.75 : (inc === '자산형' ? -0.25 : 0.25); }
+  if (a.Q7 === 3) { s += inc === '자산형' ? 0.75 : (inc === '월정액' ? 0.5 : 0.25); }
+
+  // [2층] Q8 월 목표 수입 (기대치 미달 = 순위 하향, 제외 아님) — 밴드 결측 잡은 poolQ8Mid 사용
+  if (j.income_min !== null && j.income_max !== null) {
+    const [umin, umax] = Q8_BANDS[a.Q8];
+    if (j.income_max < umin) s -= 1.0;
+  }
+
+  // [2층] Q9 수입 방식 취향
+  if (a.Q9 === 1) { s += (inc === '건별' || inc === '시간제') ? 0.5 : (inc === '자산형' ? -0.5 : 0); }
+  if (a.Q9 === 2) { s += (inc === '월정액' || inc === '자산형') ? 0.5 : 0; }
+
+  // [2층] Q10 목적 유형 보너스
+  if (a.Q10 === 1 && (inc === '건별' || inc === '시간제')) s += 0.5;
+  if (a.Q10 === 2 && TYPE_FACE_ON.includes(j.type_no)) s += 1.0;
+  if (a.Q10 === 3 && [1, 2, 3, 6].includes(j.type_no)) s += 1.0;
+  if (a.Q10 === 4) {
+    if (inc === '자산형') s += 0.75;
+    if (inc === '월정액') s += 0.25;
+    if (j.type_no === 10) s += 0.75;
+    if (j.cost === '₩₩₩' || j.cost === '₩₩₩₩' || j.cost === '₩₩₩₩₩') s += 0.25;
+  }
+
+  // [3층] Q12 디지털 수준
+  if (a.Q12 === 3) { if (j.type_no === 1) s += 0.5; if (j.difficulty === '★★★★' || j.difficulty === '★★★★★') s += 0.5; }
+
+  // [3층] Q14 보유 자격 직결 — 유형 일치 +3, 잡명 직접 일치 +3
+  if (a.Q14 && a.Q14.has && a.Q14.name) {
+    const kw = LICENSE_TYPE_MAP.find(([k]) => a.Q14.name.includes(k) && (j.name.includes(k) || (j.concept || '').includes(k)));
+    if (kw) s += 3;
+    if (a.Q14.typeBonus && a.Q14.typeBonus.includes(j.type_no)) s += 3;
+  }
+
+  // [하향 레버 v0.4] 자본형: 사업 의사가 없는 응답자(Q10≠④)에게 시설·재고 투자 잡 하향
+  if (a.Q10 !== 4 && CAPITAL_JOBS.includes(j.no)) s -= 1.5;
+  // [하향 레버 v0.4] 육체형: 몸을 많이 쓰는 잡 전반 소폭 하향 (Q6=③ 응답자에게도 순위상 뒤로)
+  if (j.stamina === '상') s -= 0.75;
+
+  // [4층] 보정 ±1~2
+  if (a.Q15 === 1 && TYPE_FACE_ON.includes(j.type_no)) s += 1;
+  if (a.Q15 === 3 && TYPE_SOLO.includes(j.type_no)) s += 1;
+  if (a.Q16 === 1 && TYPE_MANUAL.includes(j.type_no)) s += 1;
+  if (a.Q16 === 3 && TYPE_AUTON.includes(j.type_no)) s += 1;
+  if (a.Q17 === 1 && TYPE_NUMERIC.includes(j.type_no)) s += 1;
+  if (a.Q17 === 2 && TYPE_CARE.includes(j.type_no)) s += 1;
+  if (a.Q18 === 1 && IMAGE_RISK.includes(j.no)) s -= 1.5;
+  if (a.Q18 === 2 && IMAGE_RISK.includes(j.no)) s += 1;
+  if (a.Q19 === 1) { if ([2, 3, 4].includes(j.type_no)) s += 1; if (j.difficulty === '★★★★' || j.difficulty === '★★★★★') s += 0.5; }
+  if (a.Q19 === 2) { if (j.type_no === 7 || j.type_no === 9) s += 0.5; if (j.difficulty === '★' || j.difficulty === '★★') s += 0.5; }
+
+  // [5층] 활동 여건 (v0.3 신설) — 응답이 잡의 전제와 맞을 때만 온램프
+  if (a.Q20 === 2 && OUTDOOR_JOBS.includes(j.no)) s += 2.5;   // 야외에서 활동적으로
+  if (a.Q21 === 1 && VEHICLE_JOBS.includes(j.no)) s += 2.5;   // 차량 활용 가능
+  if (a.Q22 === 1 && SENIOR_JOBS.includes(j.no)) s += 2.5;    // 시니어 대상 선호
+  if (a.Q22 === 2 && KIDS_JOBS.includes(j.no)) s += 2.5;      // 아동·청소년 대상 선호
+  if (a.Q24 === 1 && INST_JOBS.includes(j.no)) s += 2.5;      // 기관 통로 선호
+  if (a.Q24 === 2 && INST_JOBS.includes(j.no)) s -= 1.0;      // 직접 알리기 선호 시 소폭 하향
+
+  // [5층] Q25 일의 중심 (v0.4) — 상향군 온램프
+  if (a.Q25 === 1 && [2, 3, 4].includes(j.type_no)) s += 2.5; // 가르치고 조언하기 → 컨설턴트·강사·상담·심사원
+  if (a.Q25 === 2 && TRAVEL_JOBS.includes(j.no)) s += 2.5;    // 여행·숙박·손님 맞이 → 여행·민박
+  if (a.Q25 === 3 && PET_JOBS.includes(j.no)) s += 2.5;       // 동물 돌보기 → 펫
+  if (a.Q25 === 4 && [1, 6].includes(j.type_no)) s += 1.0;    // 화면·작업 집중 → 디지털·창작
+  if (a.Q4 === 3 && j.license === '국가자격') s += 1.0;       // 자격 준비 의향 → 국가자격 잡 (직업상담사·ISO 심사원 등)
+
+  // [5층] Q28 선호 분야 (v0.7) — 끌리는 분야를 고르면 직결 잡에 온램프
+  const pref = Q28_PREF_MAP[a.Q28]; // 선호 분야 직결 시 +3.5 (v0.7)
+  if (pref && pref.includes(j.no)) s += 4.5;
+
+  // [6층] 매력도 프리미엄 (v0.6) — 수익성·이미지·선호도 조사 기반, Q27 강도 스위치
+  const ATTR_W = { 1: 0.9, 2: 0.2, 3: 0.55 }[a.Q27] ?? 0.55;
+  const effAttract = POPULAR_JOBS.includes(j.no) ? Math.max(j.attract || 0, 4.5) : (j.attract || 0); // v0.7 시장 선호도 보정: 인기 6종은 매력도 하한 4.5
+  s += ATTR_W * effAttract;
+
+  // [6층] 시장 선호도 프리미엄 (v0.7) — 사용자 지정 인기 잡 6종 상시 가산
+  if (POPULAR_JOBS.includes(j.no)) s += 1.0;
+
+  // [5층] Q26 일의 깊이 (v0.5) — 전문성 선호가 기본값이 되도록 설계
+  if (a.Q26 === 1 && SIMPLE_JOBS.includes(j.no)) s += 1.0;    // 빨리 시작 선호 → 단순 과업형 가점
+  if (a.Q26 === 2) {
+    if (SIMPLE_JOBS.includes(j.no)) s -= 3.0;                 // 전문성 선호 → 단순 과업형 강하향
+    if (PRO_JOBS.includes(j.no)) s += 2.5;                    // 전문성 선호 → 전문형 강상향
+  }
+
+  return s;
+}
+
+// 근거 문장 생성 (명세 §6)
+function buildReasons(a, j, typeScore) {
+  const r = [];
+  const ps = PLACE_SETS[a.Q1];
+  if (!ps || ps.includes(j.place)) {
+    const label = { 1: '집에서만', 2: '동네까지는 나가기', 3: '이동·현장 포함' }[a.Q1];
+    r.push(`${label} 조건이 맞아요`);
+  }
+  if (a.Q2 === 4 || TIME_ORDER.indexOf(j.time) <= a.Q2 - 1) r.push(`주간 시간(${j.time}) 안에서 가능해요`);
+  if (typeScore.get(j.type_no) > 0) r.push('오래 해온 경험과 연결되는 분야예요');
+  if (a.Q14 && a.Q14.has && a.Q14.typeBonus && a.Q14.typeBonus.includes(j.type_no)) r.push('가진 자격을 바로 쓸 수 있어요');
+  if (j.income_min !== null && Q8_BANDS[a.Q8] && j.income_max >= Q8_BANDS[a.Q8][0]) r.push('목표 수입 범위에 들어와요');
+  if (POPULAR_JOBS.includes(j.no)) r.push('많은 사람들이 관심을 갖는 인기 분야예요');
+  return r;
+}
+
+// ---- 메인: recommend(answers, jobs) ----
+function recommend(a, jobs) {
+  // 1층 필터 (+실패 사유 보존: R6에서 사용)
+  let pool = [], excluded = [];
+  const evaluated = new Map();
+  for (const j of jobs) {
+    const v = layer1Pass(a, j);
+    evaluated.set(j.no, v);
+    (v.ok ? pool : excluded).push(j);
+  }
+  const condMap = new Map();
+
+  // R2 안전망: 풀 0~1개면 제약을 한 계단씩 완화 (비용→자격→시간→체력→장소 순)
+  const relaxed = [];
+  let guard = 0;
+  while (pool.length < 2 && guard < 12) {
+    guard++;
+    const step = relaxed.length;
+    if (step % 5 === 0 && a.Q5 < 3) { a = { ...a, Q5: a.Q5 + 1 }; relaxed.push('시작비용 완화'); }
+    else if (step % 5 === 1 && a.Q4 < 3) { a = { ...a, Q4: a.Q4 + 1 }; relaxed.push('자격 조건 완화'); }
+    else if (step % 5 === 2 && a.Q2 < 4) { a = { ...a, Q2: a.Q2 + 1 }; relaxed.push('시간 완화'); }
+    else if (step % 5 === 3 && a.Q6 < 3) { a = { ...a, Q6: a.Q6 + 1 }; relaxed.push('체력 완화'); }
+    else if (step % 5 === 4 && a.Q1 < 3) { a = { ...a, Q1: a.Q1 + 1 }; relaxed.push('활동 반경 완화'); }
+    pool = jobs.filter(j => layer1Pass(a, j).ok);
+  }
+
+  // 3층 유형 점수 계산
+  const typeScore = new Map();
+  const bump = (t, v) => typeScore.set(t, (typeScore.get(t) || 0) + v);
+  (a.Q11 || []).forEach(e => (EXP_MAP[e] || []).forEach(t => bump(t, 2)));
+  if (a.Q13 === 1) { bump(4, 1.5); bump(5, 1.5); }
+  if (a.Q13 === 2) { bump(4, 0.5); bump(5, 0.5); }
+
+  // R6 조건부 온램프 (v0.3): Q23=① 도전 수용 시, 1층 조건을 딱 하나만 어긴 잡 중 친화도 높은 것을 최대 3개 편입
+  if (a.Q23 === 1) {
+    const prefSet = Q28_PREF_MAP[a.Q28] || [];
+    const affinity = j => (typeScore.get(j.type_no) || 0)
+      + (a.Q20 === 2 && OUTDOOR_JOBS.includes(j.no) ? 2.5 : 0)
+      + (a.Q21 === 1 && VEHICLE_JOBS.includes(j.no) ? 2.5 : 0)
+      + (a.Q22 === 1 && SENIOR_JOBS.includes(j.no) ? 2.5 : 0)
+      + (a.Q22 === 2 && KIDS_JOBS.includes(j.no) ? 2.5 : 0)
+      + (a.Q24 === 1 && INST_JOBS.includes(j.no) ? 2.5 : 0)
+      + (a.Q25 === 1 && [2, 3, 4].includes(j.type_no) ? 2.5 : 0)
+      + (a.Q25 === 2 && TRAVEL_JOBS.includes(j.no) ? 2.5 : 0)
+      + (a.Q25 === 3 && PET_JOBS.includes(j.no) ? 2.5 : 0)
+      + (prefSet.includes(j.no) ? 4.5 : 0)
+      + (a.Q4 === 3 && j.license === '국가자격' ? 1.0 : 0)
+      + (a.Q26 === 2 && PRO_JOBS.includes(j.no) ? 1.5 : 0)
+      + (a.Q14 && a.Q14.has && a.Q14.name && LICENSE_TYPE_MAP.find(([k]) => a.Q14.name.includes(k) && (j.name.includes(k) || (j.concept || '').includes(k))) ? 3 : 0)
+      + (a.Q14 && a.Q14.typeBonus && a.Q14.typeBonus.includes(j.type_no) ? 3 : 0);
+    const near = jobs.filter(j => { const v = layer1Pass(a, j); return !v.ok && v.fails === 1; });
+    const admitted = near.filter(j => affinity(j) >= 2.5)
+      .sort((x, y) => affinity(y) - affinity(x) || parseInt(x.no) - parseInt(y.no))
+      .slice(0, 3);
+    for (const j of admitted) condMap.set(j.no, evaluated.get(j.no).why);
+  }
+
+  // 2·4층 개별 채점
+  const scored = pool.map(j => {
+    const s = scoreJob(a, j, typeScore);
+    const reasons = buildReasons(a, j, typeScore);
+    const condWhy = condMap.get(j.no) || null;
+    if (condWhy) reasons.push(`단, ${condWhy.join('·')} 조건을 하나 채우면 시작할 수 있어요`);
+    return { job: j, score: Math.round(s * 100) / 100, reasons, conditional: condWhy };
+  });
+
+  // 동점 로테이션 해시: 응답 조합 + 잡번호 → 0~999 (같은 답이면 항상 같은 값 = 결정적)
+  const key = JSON.stringify(a);
+  const hash = no => { let h = 0; const s = key + no; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 1000; return h; };
+
+  // R5 노출 지터: 응답 해시 기반 ±0.6 (같은 답이면 항상 같은 값 — 결정적)
+  const jitter = no => (((hash(no) % 9) - 4) * 0.15);
+
+  // 정렬: (점수+지터) desc → 유형 경험 점수 desc → 해시 로테이션 asc → Job No. asc
+  scored.sort((x, y) =>
+    (y.score + jitter(y.job.no)) - (x.score + jitter(x.job.no)) ||
+    (typeScore.get(y.job.type_no) || 0) - (typeScore.get(x.job.type_no) || 0) ||
+    hash(x.job.no) - hash(y.job.no) ||
+    (parseInt(x.job.no) - parseInt(y.job.no)));
+
+  // R1: 풀 2~5개면 전부, 6개 이상이면 상위 6개
+  let out = scored.slice(0, Math.min(6, scored.length));
+
+  // R3: 같은 유형 최대 3개 — 초과분을 다음 순위 잡으로 교체 (v0.3: 2→3, 중장년 적합 잡의 유형 내 기회 확대)
+  const countByType = {};
+  let simpleUsed = false;
+  const kept = [];
+  for (const it of scored) {
+    const c = countByType[it.job.type_no] || 0;
+    if (c >= 3) continue;
+    if (SIMPLE_JOBS.includes(it.job.no)) { if (simpleUsed) continue; simpleUsed = true; }
+    countByType[it.job.type_no] = c + 1;
+    kept.push(it);
+    if (kept.length >= 6) break;
+  }
+  out = kept;
+
+  // R4: 풀에 있는 각 유형의 최고 점수 잡은 반드시 포함 — 빠졌으면 중복 유형 2번째와 교체
+  const outTypes = new Set(out.map(it => it.job.type_no));
+  for (const t of new Set(pool.map(j => j.type_no))) {
+    if (outTypes.has(t)) continue;
+    const top = scored.find(it => it.job.type_no === t);
+    if (!top) continue;
+    const dupIdx = out.findIndex((it, i) => (countByType[it.job.type_no] === 2) && out.findIndex(o => o === it) === i && out.filter(o => o.job.type_no === it.job.type_no).length === 2 && it !== out.find(o => o.job.type_no === it.job.type_no));
+    const swapIdx = dupIdx >= 0 ? dupIdx : out.length - 1;
+    if (out.length >= 6) out[swapIdx] = top; else out.push(top);
+    outTypes.add(t);
+  }
+
+  // R8: 전문형(PRO_JOBS) 최소 3개 보장 — 부족하면 비전문형 최하위와 교체 (v0.5)
+  const proIn = out.filter(it => PRO_JOBS.includes(it.job.no)).length;
+  if (proIn < 3) {
+    const outNos = new Set(out.map(it => it.job.no));
+    const proPool = scored.filter(it => PRO_JOBS.includes(it.job.no) && !outNos.has(it.job.no));
+    for (const pro of proPool) {
+      if (out.filter(it => PRO_JOBS.includes(it.job.no)).length >= 3) break;
+      if (out.length >= 6) {
+        let idx = -1;
+        for (let i = out.length - 1; i >= 0; i--) {
+          if (!PRO_JOBS.includes(out[i].job.no) && !out[i].job.__r4) { idx = i; break; }
+        }
+        if (idx === -1) idx = out.length - 1;
+        out[idx] = pro;
+      } else out.push(pro);
+    }
+  }
+  out.sort((x, y) => y.score - x.score);
+
+  return {
+    count: out.length,
+    pool_size: pool.length,
+    relaxed,
+    results: out.map(it => ({
+      no: it.job.no, name: it.job.name, type: it.job.type_name,
+      conditional: it.conditional || null,
+      concept: it.job.concept, cost: it.job.cost, time: it.job.time,
+      income: it.job.income_max ? `월 ${it.job.income_min}~${it.job.income_max}만원${it.job.income_est ? '(추정)' : ''}` : it.job.income_raw || null,
+      score: it.score, reasons: it.reasons,
+    })),
+  };
+}
+
+// Q14 주관식 자격명 → 유형 보너스 계산 (명세 §4.4)
+function licenseTypeBonus(name) {
+  const n = String(name || '');
+  const types = new Set();
+  for (const [kw, t] of LICENSE_TYPE_MAP) if (n.includes(kw)) types.add(t);
+  return [...types];
+}
+
+
+
+
+const JOBS = [
+ {
+  "no": "012",
+  "type_name": "2. 경영·창업 자문형",
+  "name": "스타트업 액셀러레이터",
+  "concept": "초기 스타트업을 선발해 보육·멘토링하고 성장을 지원하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★★★",
+  "time": "주15~30h",
+  "stamina": "하",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 2,
+  "income_raw": "100~400",
+  "income_min": 100,
+  "income_max": 400,
+  "income_est": false,
+  "attract": 6.75
+ },
+ {
+  "no": "032",
+  "type_name": "4. 교육·강의형",
+  "name": "진로체험 강사",
+  "concept": "중·고등학교에 나가 자신의 직업 경험을 토대로 진로 수업을 진행하는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주5h 미만",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "교육이수",
+  "income": "건별",
+  "type_no": 4,
+  "income_raw": "80 ~ 350",
+  "income_min": 80,
+  "income_max": 350,
+  "income_est": false,
+  "attract": 6.75
+ },
+ {
+  "no": "002",
+  "type_name": "1. 디지털·AI 실무형",
+  "name": "블로그·SNS 운영대행자",
+  "concept": "업체를 대신해 블로그·인스타그램 등 채널에 콘텐츠를 올리고 계정을 관리하는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "재택",
+  "license": "불필요",
+  "income": "월정액",
+  "type_no": 1,
+  "income_raw": "120만원~200만원",
+  "income_min": 120,
+  "income_max": 200,
+  "income_est": false,
+  "attract": 6.25
+ },
+ {
+  "no": "011",
+  "type_name": "2. 경영·창업 자문형",
+  "name": "창업 멘토·컨설턴트",
+  "concept": "창업 준비자에게 아이템 검증부터 사업계획·자금까지 조언하는 일",
+  "cost": "₩",
+  "difficulty": "★★★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 2,
+  "income_raw": "100~300",
+  "income_min": 100,
+  "income_max": 300,
+  "income_est": false,
+  "attract": 6.25
+ },
+ {
+  "no": "014",
+  "type_name": "2. 경영·창업 자문형",
+  "name": "AI중소기업 컨설턴트",
+  "concept": "중소기업의 업무 전반에 AI를 도입해 생산성을 높이도록 자문하는 일",
+  "cost": "₩",
+  "difficulty": "★★★★★",
+  "time": "주15~30h",
+  "stamina": "하",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 2,
+  "income_raw": "80~300",
+  "income_min": 80,
+  "income_max": 300,
+  "income_est": false,
+  "attract": 6.25
+ },
+ {
+  "no": "017",
+  "type_name": "2. 경영·창업 자문형",
+  "name": "ISO·품질 심사원",
+  "concept": "인증기관 소속으로 기업의 품질·환경 경영시스템을 심사하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "국가자격",
+  "income": "건별",
+  "type_no": 2,
+  "income_raw": "150~800",
+  "income_min": 150,
+  "income_max": 800,
+  "income_est": false,
+  "attract": 6.25
+ },
+ {
+  "no": "042",
+  "type_name": "5. 취미·문화·건강 지도형",
+  "name": "지역문화 해설사",
+  "concept": "지역의 역사와 명소를 방문객에게 설명하고 안내하는 일",
+  "cost": "₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "교육이수",
+  "income": "건별",
+  "type_no": 5,
+  "income_raw": "30 ~ 300",
+  "income_min": 30,
+  "income_max": 300,
+  "income_est": false,
+  "attract": 6.25
+ },
+ {
+  "no": "045",
+  "type_name": "5. 취미·문화·건강 지도형",
+  "name": "시니어 여행 기획·인솔자",
+  "concept": "중장년·노년층 맞춤 여행을 기획하고 현장에서 동행 인솔하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주15~30h",
+  "stamina": "상",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 5,
+  "income_raw": "150~300",
+  "income_min": 150,
+  "income_max": 300,
+  "income_est": false,
+  "attract": 6.25
+ },
+ {
+  "no": "053",
+  "type_name": "6. 콘텐츠·창작형",
+  "name": "유튜버",
+  "concept": "영상 채널을 운영해 광고·협찬·판매 수익을 만드는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★★",
+  "time": "주15~30h",
+  "stamina": "중",
+  "flex": "완전자유",
+  "place": "재택",
+  "license": "불필요",
+  "income": "자산형",
+  "type_no": 6,
+  "income_raw": "천차만별",
+  "income_min": 10,
+  "income_max": 100,
+  "income_est": true,
+  "income_basis": "시장 추정(창작·비정기 — 하위 중앙값 기준)",
+  "attract": 6.25
+ },
+ {
+  "no": "081",
+  "type_name": "9. 생활밀착 서비스형",
+  "name": "반려견 산책 도우미",
+  "concept": "보호자를 대신해 반려견을 산책시키고 상태를 살펴주는 일",
+  "cost": "₩",
+  "difficulty": "★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "완전자유",
+  "place": "방문",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 9,
+  "income_raw": "20만원~100만원",
+  "income_min": 20,
+  "income_max": 100,
+  "income_est": false,
+  "attract": 6.25
+ },
+ {
+  "no": "084",
+  "type_name": "9. 생활밀착 서비스형",
+  "name": "반려동물 장례지도사",
+  "concept": "반려동물의 장례를 절차에 따라 진행하고 보호자를 위로하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주15~30h",
+  "stamina": "중",
+  "flex": "고정",
+  "place": "현장",
+  "license": "민간자격",
+  "income": "시간제",
+  "type_no": 9,
+  "income_raw": "220만원~240만원",
+  "income_min": 220,
+  "income_max": 240,
+  "income_est": false,
+  "attract": 6.25
+ },
+ {
+  "no": "090",
+  "type_name": "9. 생활밀착 서비스형",
+  "name": "펫택시 기사",
+  "concept": "반려동물과 보호자를 병원·미용실 등으로 전용 차량으로 운송하는 일",
+  "cost": "₩₩₩",
+  "difficulty": "★★",
+  "time": "주15~30h",
+  "stamina": "중",
+  "flex": "완전자유",
+  "place": "현장",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 9,
+  "income_raw": "150~200만원",
+  "income_min": 200,
+  "income_max": 200,
+  "income_est": false,
+  "attract": 6.25
+ },
+ {
+  "no": "096",
+  "type_name": "10. 판매·공간·무인 운영형",
+  "name": "공유숙박 운영자",
+  "concept": "보유하거나 임차한 공간을 여행객에게 단기 숙소로 빌려주는 일",
+  "cost": "₩₩₩₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "완전자유",
+  "place": "점포",
+  "license": "교육이수",
+  "income": "자산형",
+  "type_no": 10,
+  "income_raw": "150~250만원",
+  "income_min": 250,
+  "income_max": 250,
+  "income_est": false,
+  "attract": 6.25
+ },
+ {
+  "no": "016",
+  "type_name": "2. 경영·창업 자문형",
+  "name": "평판조회 전문가",
+  "concept": "채용 예정자의 전 직장 평판을 확인해 검증 보고서를 작성하는 일",
+  "cost": "₩",
+  "difficulty": "★★★",
+  "time": "주5h 미만",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "재택",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 2,
+  "income_raw": "150~350+",
+  "income_min": 150,
+  "income_max": 350,
+  "income_est": false,
+  "attract": 6.0
+ },
+ {
+  "no": "001",
+  "type_name": "1. 디지털·AI 실무형",
+  "name": "디지털 마케터",
+  "concept": "기업·소상공인의 온라인 광고와 홍보를 대신 기획·집행해 매출로 연결하는 일",
+  "cost": "₩",
+  "difficulty": "★★★★",
+  "time": "주15~30h",
+  "stamina": "하",
+  "flex": "협의가능",
+  "place": "재택",
+  "license": "불필요",
+  "income": "월정액",
+  "type_no": 1,
+  "income_raw": "100만원~230만원",
+  "income_min": 100,
+  "income_max": 230,
+  "income_est": false,
+  "attract": 5.75
+ },
+ {
+  "no": "015",
+  "type_name": "2. 경영·창업 자문형",
+  "name": "면접심사위원",
+  "concept": "기업·공공기관 채용 면접에 외부 위원으로 참여해 지원자를 평가하는 일",
+  "cost": "₩",
+  "difficulty": "★★★",
+  "time": "주5h 미만",
+  "stamina": "하",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 2,
+  "income_raw": "40 ~ 120",
+  "income_min": 40,
+  "income_max": 120,
+  "income_est": false,
+  "attract": 5.75
+ },
+ {
+  "no": "019",
+  "type_name": "3. 커리어·심리 상담형",
+  "name": "전직지원 컨설턴트",
+  "concept": "퇴직(예정)자가 다음 일자리로 옮겨가도록 재취업 전 과정을 지원하는 일",
+  "cost": "₩",
+  "difficulty": "★★★★",
+  "time": "주15~30h",
+  "stamina": "하",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 3,
+  "income_raw": "220만원~240만원",
+  "income_min": 220,
+  "income_max": 240,
+  "income_est": false,
+  "attract": 5.75
+ },
+ {
+  "no": "020",
+  "type_name": "3. 커리어·심리 상담형",
+  "name": "커리어 코치",
+  "concept": "개인의 경력 목표를 함께 설계하고 실행을 이끌어주는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "온라인",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 3,
+  "income_raw": "100만원~240만원",
+  "income_min": 100,
+  "income_max": 240,
+  "income_est": false,
+  "attract": 5.75
+ },
+ {
+  "no": "028",
+  "type_name": "4. 교육·강의형",
+  "name": "시니어 대상 강사",
+  "concept": "중장년·노년층의 눈높이에 맞춰 생활·교양 과목을 강의하는 일",
+  "cost": "₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 4,
+  "income_raw": "30 ~ 250",
+  "income_min": 30,
+  "income_max": 250,
+  "income_est": false,
+  "attract": 5.75
+ },
+ {
+  "no": "029",
+  "type_name": "4. 교육·강의형",
+  "name": "아동 대상 강사",
+  "concept": "방과후·돌봄교실에서 아이들에게 체험·학습 프로그램을 지도하는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 4,
+  "income_raw": "60 ~ 200",
+  "income_min": 60,
+  "income_max": 200,
+  "income_est": false,
+  "attract": 5.75
+ },
+ {
+  "no": "030",
+  "type_name": "4. 교육·강의형",
+  "name": "한국어 교원(외국인 대상)",
+  "concept": "외국인·다문화가정에 한국어와 한국문화를 가르치는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★★",
+  "time": "주15~30h",
+  "stamina": "하",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "국가자격",
+  "income": "시간제",
+  "type_no": 4,
+  "income_raw": "100 ~ 200",
+  "income_min": 100,
+  "income_max": 200,
+  "income_est": false,
+  "attract": 5.75
+ },
+ {
+  "no": "033",
+  "type_name": "4. 교육·강의형",
+  "name": "시니어 방문학습 지도사",
+  "concept": "가정을 방문해 학습지·교재로 1:1 지도를 하는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주15~30h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "방문",
+  "license": "교육이수",
+  "income": "월정액",
+  "type_no": 4,
+  "income_raw": "50 ~ 200",
+  "income_min": 50,
+  "income_max": 200,
+  "income_est": false,
+  "attract": 5.75
+ },
+ {
+  "no": "035",
+  "type_name": "5. 취미·문화·건강 지도형",
+  "name": "캘리그래피 강사",
+  "concept": "손글씨 예술을 가르치고 작품·소품 제작으로 연결하는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "현장",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 5,
+  "income_raw": "50 ~ 200",
+  "income_min": 50,
+  "income_max": 200,
+  "income_est": false,
+  "attract": 5.75
+ },
+ {
+  "no": "038",
+  "type_name": "5. 취미·문화·건강 지도형",
+  "name": "파크골프·생활체육 지도자",
+  "concept": "파크골프 등 생활체육 종목을 현장에서 지도하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주15~30h",
+  "stamina": "상",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "국가자격",
+  "income": "시간제",
+  "type_no": 5,
+  "income_raw": "50 ~ 150",
+  "income_min": 50,
+  "income_max": 150,
+  "income_est": false,
+  "attract": 5.75
+ },
+ {
+  "no": "040",
+  "type_name": "5. 취미·문화·건강 지도형",
+  "name": "노인 운동 강사",
+  "concept": "어르신 대상 근력 강화와 낙상 예방 운동을 지도하는 일",
+  "cost": "₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 5,
+  "income_raw": "150 ~ 250",
+  "income_min": 150,
+  "income_max": 250,
+  "income_est": false,
+  "attract": 5.75
+ },
+ {
+  "no": "041",
+  "type_name": "5. 취미·문화·건강 지도형",
+  "name": "동화구연가",
+  "concept": "도서관·유치원에서 목소리와 표현으로 이야기를 들려주는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주5h 미만",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 5,
+  "income_raw": "35 ~ 250",
+  "income_min": 35,
+  "income_max": 250,
+  "income_est": false,
+  "attract": 5.75
+ },
+ {
+  "no": "043",
+  "type_name": "5. 취미·문화·건강 지도형",
+  "name": "숲해설가",
+  "concept": "숲을 찾은 사람들에게 생태와 자연을 안내하고 체험을 이끄는 일",
+  "cost": "₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "상",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "국가자격",
+  "income": "건별",
+  "type_no": 5,
+  "income_raw": "50 ~ 250",
+  "income_min": 50,
+  "income_max": 250,
+  "income_est": false,
+  "attract": 5.75
+ },
+ {
+  "no": "049",
+  "type_name": "6. 콘텐츠·창작형",
+  "name": "전자책 작가",
+  "concept": "전자책 플랫폼에 직접 책을 출간해 판매 수익을 얻는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "재택",
+  "license": "불필요",
+  "income": "자산형",
+  "type_no": 6,
+  "income_raw": "판매가의 50~70% 사이의 수익",
+  "income_min": 50,
+  "income_max": 70,
+  "income_est": false,
+  "attract": 5.75
+ },
+ {
+  "no": "057",
+  "type_name": "7. 생활기술·시공·점검형",
+  "name": "소형 집수리 전문가",
+  "concept": "수도·전기·문틀 등 집안의 작은 고장을 방문해 고쳐주는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주15~30h",
+  "stamina": "상",
+  "flex": "완전자유",
+  "place": "방문",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 7,
+  "income_raw": "80 ~ 200",
+  "income_min": 80,
+  "income_max": 200,
+  "income_est": false,
+  "attract": 5.75
+ },
+ {
+  "no": "073",
+  "type_name": "8. 돌봄·통합케어형",
+  "name": "노인 인지활동 지도사",
+  "concept": "치매 예방을 위한 인지 자극 프로그램을 진행하는 일",
+  "cost": "₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 8,
+  "income_raw": "50 ~ 200",
+  "income_min": 50,
+  "income_max": 200,
+  "income_est": false,
+  "attract": 5.75
+ },
+ {
+  "no": "009",
+  "type_name": "2. 경영·창업 자문형",
+  "name": "경영 컨설턴트",
+  "concept": "기업의 경영 문제를 진단하고 개선 방안을 제시하는 일",
+  "cost": "₩",
+  "difficulty": "★★★★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 2,
+  "income_raw": "100~300",
+  "income_min": 100,
+  "income_max": 300,
+  "income_est": false,
+  "attract": 5.5
+ },
+ {
+  "no": "013",
+  "type_name": "2. 경영·창업 자문형",
+  "name": "AI소상공인 컨설턴트",
+  "concept": "소상공인이 AI 도구로 홍보·주문·고객관리를 자동화하도록 돕는 일",
+  "cost": "₩",
+  "difficulty": "★★★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "협의가능",
+  "place": "방문",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 2,
+  "income_raw": "100~300",
+  "income_min": 100,
+  "income_max": 300,
+  "income_est": false,
+  "attract": 5.5
+ },
+ {
+  "no": "026",
+  "type_name": "4. 교육·강의형",
+  "name": "디지털·AI 활용 강사",
+  "concept": "스마트폰·AI 도구 사용법을 실습 중심으로 가르치는 일",
+  "cost": "₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "교육이수",
+  "income": "건별",
+  "type_no": 4,
+  "income_raw": "100 ~ 250",
+  "income_min": 100,
+  "income_max": 250,
+  "income_est": false,
+  "attract": 5.25
+ },
+ {
+  "no": "027",
+  "type_name": "4. 교육·강의형",
+  "name": "스마트경로당 강사",
+  "concept": "경로당에서 어르신에게 스마트기기와 건강 프로그램을 지도하는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "교육이수",
+  "income": "건별",
+  "type_no": 4,
+  "income_raw": "60 ~ 180",
+  "income_min": 60,
+  "income_max": 180,
+  "income_est": false,
+  "attract": 5.25
+ },
+ {
+  "no": "031",
+  "type_name": "4. 교육·강의형",
+  "name": "디지털 안내사",
+  "concept": "키오스크·앱 사용이 어려운 시민을 현장에서 직접 도와주는 일",
+  "cost": "₩",
+  "difficulty": "★",
+  "time": "주15~30h",
+  "stamina": "중",
+  "flex": "고정",
+  "place": "현장",
+  "license": "교육이수",
+  "income": "시간제",
+  "type_no": 4,
+  "income_raw": "50 ~ 250",
+  "income_min": 50,
+  "income_max": 250,
+  "income_est": false,
+  "attract": 5.25
+ },
+ {
+  "no": "070",
+  "type_name": "8. 돌봄·통합케어형",
+  "name": "병원동행 매니저",
+  "concept": "거동이 불편한 사람과 병원에 동행해 접수·진료·귀가를 돕는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "완전자유",
+  "place": "방문",
+  "license": "교육이수",
+  "income": "건별",
+  "type_no": 8,
+  "income_raw": "50 ~ 240",
+  "income_min": 50,
+  "income_max": 240,
+  "income_est": false,
+  "attract": 5.25
+ },
+ {
+  "no": "072",
+  "type_name": "8. 돌봄·통합케어형",
+  "name": "요양보호사",
+  "concept": "장기요양 대상 어르신의 신체활동과 일상생활을 돌보는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주15~30h",
+  "stamina": "상",
+  "flex": "협의가능",
+  "place": "방문",
+  "license": "국가자격",
+  "income": "시간제",
+  "type_no": 8,
+  "income_raw": "100 ~ 230",
+  "income_min": 100,
+  "income_max": 230,
+  "income_est": false,
+  "attract": 5.25
+ },
+ {
+  "no": "025",
+  "type_name": "4. 교육·강의형",
+  "name": "기업교육 강사",
+  "concept": "기업·공공기관에 출강해 직무와 조직 역량을 가르치는 일",
+  "cost": "₩",
+  "difficulty": "★★★★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 4,
+  "income_raw": "50 ~ 200",
+  "income_min": 50,
+  "income_max": 200,
+  "income_est": false,
+  "attract": 5.0
+ },
+ {
+  "no": "055",
+  "type_name": "6. 콘텐츠·창작형",
+  "name": "시니어 배우·보조출연자",
+  "concept": "드라마·영화·광고에 단역과 보조출연으로 참여하는 일",
+  "cost": "₩",
+  "difficulty": "★",
+  "time": "주5~15h",
+  "stamina": "상",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 6,
+  "income_raw": "",
+  "income_min": 50,
+  "income_max": 150,
+  "income_est": true,
+  "income_basis": "시장 추정(창작·비정기 — 하위 중앙값 기준)",
+  "attract": 5.0
+ },
+ {
+  "no": "004",
+  "type_name": "1. 디지털·AI 실무형",
+  "name": "숏폼 영상 편집자",
+  "concept": "릴스·쇼츠 등 짧은 세로형 영상을 자막·컷 편집해 완성하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "재택",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 1,
+  "income_raw": "30~100만원",
+  "income_min": 100,
+  "income_max": 100,
+  "income_est": false,
+  "attract": 4.75
+ },
+ {
+  "no": "007",
+  "type_name": "1. 디지털·AI 실무형",
+  "name": "상세페이지 디자이너",
+  "concept": "온라인 쇼핑몰 상품 소개 페이지를 기획하고 이미지로 제작하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "재택",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 1,
+  "income_raw": "220만원",
+  "income_min": 220,
+  "income_max": 220,
+  "income_est": false,
+  "attract": 4.75
+ },
+ {
+  "no": "024",
+  "type_name": "3. 커리어·심리 상담형",
+  "name": "퍼스널컬러 전문가",
+  "concept": "개인에게 어울리는 색을 진단해 옷·화장·이미지 연출을 조언하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "현장",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 3,
+  "income_raw": "건당 8~15만원",
+  "income_min": 15,
+  "income_max": 15,
+  "income_est": false,
+  "attract": 4.75
+ },
+ {
+  "no": "048",
+  "type_name": "6. 콘텐츠·창작형",
+  "name": "도서 작가",
+  "concept": "자신의 경험과 지식을 원고로 써서 종이책으로 출간하는 일",
+  "cost": "₩",
+  "difficulty": "★★★★",
+  "time": "주15~30h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "재택",
+  "license": "불필요",
+  "income": "자산형",
+  "type_no": 6,
+  "income_raw": "인세는 도서정가의 10%",
+  "income_min": 10,
+  "income_max": 10,
+  "income_est": false,
+  "attract": 4.75
+ },
+ {
+  "no": "080",
+  "type_name": "9. 생활밀착 서비스형",
+  "name": "정리수납 전문가",
+  "concept": "집과 사무실의 물건을 분류·정리해 공간을 다시 쓸 수 있게 만드는 일",
+  "cost": "₩₩",
+  "difficulty": "★★",
+  "time": "주5~15h",
+  "stamina": "상",
+  "flex": "완전자유",
+  "place": "방문",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 9,
+  "income_raw": "9-6시 기준 일 22만원",
+  "income_min": 22,
+  "income_max": 22,
+  "income_est": false,
+  "attract": 4.75
+ },
+ {
+  "no": "097",
+  "type_name": "10. 판매·공간·무인 운영형",
+  "name": "공간대여 사업자",
+  "concept": "파티룸·회의실 등 공간을 시간 단위로 빌려주는 일",
+  "cost": "₩₩₩₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "점포",
+  "license": "불필요",
+  "income": "자산형",
+  "type_no": 10,
+  "income_raw": "100~200만원",
+  "income_min": 200,
+  "income_max": 200,
+  "income_est": false,
+  "attract": 4.5
+ },
+ {
+  "no": "047",
+  "type_name": "6. 콘텐츠·창작형",
+  "name": "온라인 건물주",
+  "concept": "블로그·카페·전자책 등 온라인 자산을 쌓아 반복 수익을 만드는 일",
+  "cost": "₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "재택",
+  "license": "불필요",
+  "income": "자산형",
+  "type_no": 6,
+  "income_raw": "50만원~200만원",
+  "income_min": 50,
+  "income_max": 200,
+  "income_est": false,
+  "attract": 4.0
+ },
+ {
+  "no": "010",
+  "type_name": "2. 경영·창업 자문형",
+  "name": "소상공인 컨설턴트",
+  "concept": "동네 가게와 소상공인의 매출·운영 문제를 현장에서 진단하고 해결을 돕는 일",
+  "cost": "₩",
+  "difficulty": "★★★★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "방문",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 2,
+  "income_raw": "",
+  "income_min": 150,
+  "income_max": 300,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.7
+ },
+ {
+  "no": "050",
+  "type_name": "6. 콘텐츠·창작형",
+  "name": "사진사",
+  "concept": "인물·행사·상품 등을 촬영하고 보정해 납품하는 일",
+  "cost": "₩₩₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "완전자유",
+  "place": "현장",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 6,
+  "income_raw": "",
+  "income_min": 150,
+  "income_max": 300,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.7
+ },
+ {
+  "no": "056",
+  "type_name": "7. 생활기술·시공·점검형",
+  "name": "생활목공 전문가",
+  "concept": "가구와 생활소품을 직접 제작하고 수업·주문제작으로 연결하는 일",
+  "cost": "₩₩₩",
+  "difficulty": "★★★",
+  "time": "주15~30h",
+  "stamina": "상",
+  "flex": "완전자유",
+  "place": "현장",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 7,
+  "income_raw": "",
+  "income_min": 150,
+  "income_max": 300,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.7
+ },
+ {
+  "no": "058",
+  "type_name": "7. 생활기술·시공·점검형",
+  "name": "도배·장판 시공 기사",
+  "concept": "주택·상가의 벽지와 바닥재를 시공하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주15~30h",
+  "stamina": "상",
+  "flex": "협의가능",
+  "place": "방문",
+  "license": "교육이수",
+  "income": "건별",
+  "type_no": 7,
+  "income_raw": "",
+  "income_min": 250,
+  "income_max": 450,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.7
+ },
+ {
+  "no": "059",
+  "type_name": "7. 생활기술·시공·점검형",
+  "name": "타일·줄눈 시공 기사",
+  "concept": "욕실·주방의 타일을 붙이고 줄눈을 시공·보수하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주15~30h",
+  "stamina": "상",
+  "flex": "완전자유",
+  "place": "방문",
+  "license": "교육이수",
+  "income": "건별",
+  "type_no": 7,
+  "income_raw": "",
+  "income_min": 250,
+  "income_max": 450,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.7
+ },
+ {
+  "no": "060",
+  "type_name": "7. 생활기술·시공·점검형",
+  "name": "에어컨 세척·청소 전문가",
+  "concept": "가정·상가의 에어컨을 분해 세척하고 관리해주는 일",
+  "cost": "₩₩",
+  "difficulty": "★★",
+  "time": "주15~30h",
+  "stamina": "상",
+  "flex": "완전자유",
+  "place": "방문",
+  "license": "교육이수",
+  "income": "건별",
+  "type_no": 7,
+  "income_raw": "",
+  "income_min": 150,
+  "income_max": 300,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.7
+ },
+ {
+  "no": "061",
+  "type_name": "7. 생활기술·시공·점검형",
+  "name": "아파트 사전점검 관리자",
+  "concept": "입주 전 아파트를 점검해 하자를 찾아내고 보수를 요청하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주15~30h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "교육이수",
+  "income": "건별",
+  "type_no": 7,
+  "income_raw": "",
+  "income_min": 200,
+  "income_max": 350,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.7
+ },
+ {
+  "no": "062",
+  "type_name": "7. 생활기술·시공·점검형",
+  "name": "소방안전관리자",
+  "concept": "건물의 소방시설을 점검하고 안전관리 업무를 선임되어 수행하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주30h 이상",
+  "stamina": "하",
+  "flex": "고정",
+  "place": "현장",
+  "license": "국가자격",
+  "income": "월정액",
+  "type_no": 7,
+  "income_raw": "",
+  "income_min": 200,
+  "income_max": 300,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.7
+ },
+ {
+  "no": "064",
+  "type_name": "7. 생활기술·시공·점검형",
+  "name": "중고차 진단평가사",
+  "concept": "중고차의 상태를 점검·평가해 가치를 판정하고 구매를 돕는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★★",
+  "time": "주15~30h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "국가자격",
+  "income": "건별",
+  "type_no": 7,
+  "income_raw": "",
+  "income_min": 200,
+  "income_max": 350,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.7
+ },
+ {
+  "no": "065",
+  "type_name": "7. 생활기술·시공·점검형",
+  "name": "세차·카디테일링 전문가",
+  "concept": "차량을 출장 세차하고 광택·실내 관리까지 해주는 일",
+  "cost": "₩₩₩",
+  "difficulty": "★★",
+  "time": "주15~30h",
+  "stamina": "상",
+  "flex": "완전자유",
+  "place": "방문",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 7,
+  "income_raw": "",
+  "income_min": 150,
+  "income_max": 300,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.7
+ },
+ {
+  "no": "066",
+  "type_name": "7. 생활기술·시공·점검형",
+  "name": "수목치료기술자",
+  "concept": "나무의사의 처방에 따라 나무의 병해충을 예방하고 치료하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★★",
+  "time": "주15~30h",
+  "stamina": "상",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "국가자격",
+  "income": "건별",
+  "type_no": 7,
+  "income_raw": "",
+  "income_min": 200,
+  "income_max": 350,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.7
+ },
+ {
+  "no": "067",
+  "type_name": "7. 생활기술·시공·점검형",
+  "name": "드론방제사",
+  "concept": "드론을 조종해 농작물·수목·시설에 방제 작업을 수행하는 일",
+  "cost": "₩₩₩",
+  "difficulty": "★★★",
+  "time": "주15~30h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "국가자격",
+  "income": "건별",
+  "type_no": 7,
+  "income_raw": "",
+  "income_min": 150,
+  "income_max": 300,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.7
+ },
+ {
+  "no": "074",
+  "type_name": "8. 돌봄·통합케어형",
+  "name": "산모·신생아 관리사",
+  "concept": "출산 가정을 방문해 산모 회복과 신생아 돌봄을 지원하는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주30h 이상",
+  "stamina": "상",
+  "flex": "협의가능",
+  "place": "방문",
+  "license": "교육이수",
+  "income": "시간제",
+  "type_no": 8,
+  "income_raw": "",
+  "income_min": 250,
+  "income_max": 400,
+  "income_est": true,
+  "income_basis": "시장 추정(시급제 환산: 시급 1.0~1.5만원 × 주간시간 밴드 × 4.3주)",
+  "attract": 3.7
+ },
+ {
+  "no": "082",
+  "type_name": "9. 생활밀착 서비스형",
+  "name": "펫 미용사",
+  "concept": "반려동물의 털을 깎고 목욕·손질해 단장해주는 일",
+  "cost": "₩₩₩",
+  "difficulty": "★★★",
+  "time": "주15~30h",
+  "stamina": "상",
+  "flex": "협의가능",
+  "place": "점포",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 9,
+  "income_raw": "",
+  "income_min": 180,
+  "income_max": 320,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.7
+ },
+ {
+  "no": "083",
+  "type_name": "9. 생활밀착 서비스형",
+  "name": "반려동물 훈련사",
+  "concept": "반려동물의 문제행동을 교정하고 기본 훈련을 지도하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★★",
+  "time": "주15~30h",
+  "stamina": "중",
+  "flex": "완전자유",
+  "place": "방문",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 9,
+  "income_raw": "",
+  "income_min": 150,
+  "income_max": 300,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.7
+ },
+ {
+  "no": "085",
+  "type_name": "9. 생활밀착 서비스형",
+  "name": "차량 탁송 기사",
+  "concept": "판매·수리 등으로 이동이 필요한 차량을 목적지까지 운전해 옮기는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주15~30h",
+  "stamina": "중",
+  "flex": "완전자유",
+  "place": "현장",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 9,
+  "income_raw": "",
+  "income_min": 200,
+  "income_max": 400,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.7
+ },
+ {
+  "no": "088",
+  "type_name": "9. 생활밀착 서비스형",
+  "name": "플랫폼택시 기사",
+  "concept": "호출 앱을 통해 승객을 태우고 운송하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주30h 이상",
+  "stamina": "중",
+  "flex": "완전자유",
+  "place": "현장",
+  "license": "국가자격",
+  "income": "건별",
+  "type_no": 9,
+  "income_raw": "",
+  "income_min": 200,
+  "income_max": 350,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.7
+ },
+ {
+  "no": "018",
+  "type_name": "3. 커리어·심리 상담형",
+  "name": "직업상담사",
+  "concept": "구직자의 적성과 경력을 진단해 일자리를 찾도록 상담하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주15~30h",
+  "stamina": "하",
+  "flex": "고정",
+  "place": "현장",
+  "license": "국가자격",
+  "income": "시간제",
+  "type_no": 3,
+  "income_raw": "90만원~180만원",
+  "income_min": 90,
+  "income_max": 180,
+  "income_est": false,
+  "attract": 3.5
+ },
+ {
+  "no": "051",
+  "type_name": "6. 콘텐츠·창작형",
+  "name": "아이패드 드로잉 작가",
+  "concept": "태블릿으로 그림을 그려 작품 판매·외주·수업으로 연결하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "재택",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 6,
+  "income_raw": "100만원 이하",
+  "income_min": 100,
+  "income_max": 100,
+  "income_est": false,
+  "attract": 3.5
+ },
+ {
+  "no": "087",
+  "type_name": "9. 생활밀착 서비스형",
+  "name": "생활상품 배송 기사",
+  "concept": "생활용품·택배를 정해진 구역에 배송하는 일",
+  "cost": "₩₩₩",
+  "difficulty": "★★",
+  "time": "주30h 이상",
+  "stamina": "상",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 9,
+  "income_raw": "200~500만원",
+  "income_min": 500,
+  "income_max": 500,
+  "income_est": false,
+  "attract": 3.25
+ },
+ {
+  "no": "003",
+  "type_name": "1. 디지털·AI 실무형",
+  "name": "온라인 사무지원 프리랜서",
+  "concept": "문서 작성, 자료 정리, 일정 관리 등 사무 업무를 원격으로 대행하는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "협의가능",
+  "place": "재택",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 1,
+  "income_raw": "",
+  "income_min": 50,
+  "income_max": 150,
+  "income_est": true,
+  "income_basis": "시장 추정(창작·비정기 — 하위 중앙값 기준)",
+  "attract": 3.2
+ },
+ {
+  "no": "008",
+  "type_name": "1. 디지털·AI 실무형",
+  "name": "유해콘텐츠 모니터링 요원",
+  "concept": "플랫폼에 올라온 게시물·리뷰를 검토해 규정 위반 콘텐츠를 걸러내는 일",
+  "cost": "₩",
+  "difficulty": "★",
+  "time": "주15~30h",
+  "stamina": "하",
+  "flex": "고정",
+  "place": "재택",
+  "license": "불필요",
+  "income": "시간제",
+  "type_no": 1,
+  "income_raw": "",
+  "income_min": 95,
+  "income_max": 123,
+  "income_est": true,
+  "income_basis": "시장 추정(시급제 환산: 시급 1.0~1.5만원 × 주간시간 밴드 × 4.3주)",
+  "attract": 3.2
+ },
+ {
+  "no": "034",
+  "type_name": "5. 취미·문화·건강 지도형",
+  "name": "원예 체험강사",
+  "concept": "식물 심기·정원 가꾸기 등 원예 활동 프로그램을 진행하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 5,
+  "income_raw": "",
+  "income_min": 80,
+  "income_max": 200,
+  "income_est": true,
+  "income_basis": "시장 추정(강사·지도 회당 3~10만원 환산)",
+  "attract": 3.2
+ },
+ {
+  "no": "036",
+  "type_name": "5. 취미·문화·건강 지도형",
+  "name": "셔플댄스 강사",
+  "concept": "음악에 맞춘 셔플댄스를 지도하며 운동과 즐거움을 함께 주는 일",
+  "cost": "₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "상",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 5,
+  "income_raw": "",
+  "income_min": 80,
+  "income_max": 200,
+  "income_est": true,
+  "income_basis": "시장 추정(강사·지도 회당 3~10만원 환산)",
+  "attract": 3.2
+ },
+ {
+  "no": "037",
+  "type_name": "5. 취미·문화·건강 지도형",
+  "name": "바리스타 자격 강사",
+  "concept": "커피 추출 기술과 바리스타 자격 취득 과정을 지도하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "국가자격",
+  "income": "건별",
+  "type_no": 5,
+  "income_raw": "",
+  "income_min": 100,
+  "income_max": 220,
+  "income_est": true,
+  "income_basis": "시장 추정(강사·지도 회당 3~10만원 환산)",
+  "attract": 3.2
+ },
+ {
+  "no": "039",
+  "type_name": "5. 취미·문화·건강 지도형",
+  "name": "명상·요가 지도자",
+  "concept": "호흡·명상·요가 수업을 통해 몸과 마음의 이완을 지도하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 5,
+  "income_raw": "",
+  "income_min": 100,
+  "income_max": 250,
+  "income_est": true,
+  "income_basis": "시장 추정(강사·지도 회당 3~10만원 환산)",
+  "attract": 3.2
+ },
+ {
+  "no": "046",
+  "type_name": "5. 취미·문화·건강 지도형",
+  "name": "웃음치료·레크리에이션 강사",
+  "concept": "웃음·놀이 프로그램으로 참여자의 활력과 관계를 북돋우는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 5,
+  "income_raw": "",
+  "income_min": 80,
+  "income_max": 200,
+  "income_est": true,
+  "income_basis": "시장 추정(강사·지도 회당 3~10만원 환산)",
+  "attract": 3.2
+ },
+ {
+  "no": "052",
+  "type_name": "6. 콘텐츠·창작형",
+  "name": "이모티콘 작가",
+  "concept": "메신저용 이모티콘을 제작해 플랫폼에 승인·판매하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "재택",
+  "license": "불필요",
+  "income": "자산형",
+  "type_no": 6,
+  "income_raw": "",
+  "income_min": 10,
+  "income_max": 100,
+  "income_est": true,
+  "income_basis": "시장 추정(창작·비정기 — 하위 중앙값 기준)",
+  "attract": 3.2
+ },
+ {
+  "no": "054",
+  "type_name": "6. 콘텐츠·창작형",
+  "name": "시니어 모델",
+  "concept": "광고·화보·패션쇼에 중장년 모델로 출연하는 일",
+  "cost": "₩",
+  "difficulty": "★★★",
+  "time": "주5h 미만",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 6,
+  "income_raw": "",
+  "income_min": 50,
+  "income_max": 150,
+  "income_est": true,
+  "income_basis": "시장 추정(창작·비정기 — 하위 중앙값 기준)",
+  "attract": 3.2
+ },
+ {
+  "no": "063",
+  "type_name": "7. 생활기술·시공·점검형",
+  "name": "스마트돌봄 기기 관리원",
+  "concept": "어르신 가정의 IoT 돌봄기기를 설치·점검하고 관리하는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주15~30h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "방문",
+  "license": "교육이수",
+  "income": "시간제",
+  "type_no": 7,
+  "income_raw": "",
+  "income_min": 150,
+  "income_max": 250,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.2
+ },
+ {
+  "no": "068",
+  "type_name": "7. 생활기술·시공·점검형",
+  "name": "스마트팜 재배·관리원",
+  "concept": "스마트팜 시설에서 환경을 제어하며 작물을 재배·관리하는 일",
+  "cost": "₩₩₩",
+  "difficulty": "★★★",
+  "time": "주30h 이상",
+  "stamina": "중",
+  "flex": "고정",
+  "place": "현장",
+  "license": "교육이수",
+  "income": "시간제",
+  "type_no": 7,
+  "income_raw": "",
+  "income_min": 180,
+  "income_max": 280,
+  "income_est": true,
+  "income_basis": "시장 추정(시급제 환산: 시급 1.0~1.5만원 × 주간시간 밴드 × 4.3주)",
+  "attract": 3.2
+ },
+ {
+  "no": "069",
+  "type_name": "7. 생활기술·시공·점검형",
+  "name": "무인매장 순회 관리원",
+  "concept": "여러 무인점포를 돌며 청소·재고·기기 상태를 점검해주는 일",
+  "cost": "₩",
+  "difficulty": "★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "완전자유",
+  "place": "점포",
+  "license": "불필요",
+  "income": "월정액",
+  "type_no": 7,
+  "income_raw": "",
+  "income_min": 150,
+  "income_max": 250,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.2
+ },
+ {
+  "no": "076",
+  "type_name": "8. 돌봄·통합케어형",
+  "name": "통합돌봄 코디네이터",
+  "concept": "돌봄이 필요한 주민의 상황을 파악해 필요한 서비스를 연결·조정하는 일",
+  "cost": "₩",
+  "difficulty": "★★★★",
+  "time": "주30h 이상",
+  "stamina": "중",
+  "flex": "고정",
+  "place": "현장",
+  "license": "국가자격",
+  "income": "월정액",
+  "type_no": 8,
+  "income_raw": "",
+  "income_min": 180,
+  "income_max": 280,
+  "income_est": true,
+  "income_basis": "시장 추정(시급제 환산: 시급 1.0~1.5만원 × 주간시간 밴드 × 4.3주)",
+  "attract": 3.2
+ },
+ {
+  "no": "077",
+  "type_name": "8. 돌봄·통합케어형",
+  "name": "트래블헬퍼",
+  "concept": "거동이 불편한 사람의 여행에 동행해 이동과 활동을 지원하는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주5~15h",
+  "stamina": "상",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "교육이수",
+  "income": "건별",
+  "type_no": 8,
+  "income_raw": "",
+  "income_min": 150,
+  "income_max": 250,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.2
+ },
+ {
+  "no": "086",
+  "type_name": "9. 생활밀착 서비스형",
+  "name": "도보 배달원",
+  "concept": "도보나 자전거로 가까운 거리의 음식·물품을 배달하는 일",
+  "cost": "₩",
+  "difficulty": "★",
+  "time": "주5~15h",
+  "stamina": "상",
+  "flex": "완전자유",
+  "place": "현장",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 9,
+  "income_raw": "",
+  "income_min": 130,
+  "income_max": 230,
+  "income_est": true,
+  "income_basis": "시장 추정(시급제 환산: 시급 1.0~1.5만원 × 주간시간 밴드 × 4.3주)",
+  "attract": 3.2
+ },
+ {
+  "no": "089",
+  "type_name": "9. 생활밀착 서비스형",
+  "name": "공유모빌리티 관리원",
+  "concept": "공유 킥보드·자전거를 수거·충전하고 재배치·정비하는 일",
+  "cost": "₩₩₩",
+  "difficulty": "★",
+  "time": "주15~30h",
+  "stamina": "상",
+  "flex": "완전자유",
+  "place": "현장",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 9,
+  "income_raw": "",
+  "income_min": 180,
+  "income_max": 280,
+  "income_est": true,
+  "income_basis": "시장 추정(기술·순회 서비스 건별·월정액)",
+  "attract": 3.2
+ },
+ {
+  "no": "094",
+  "type_name": "10. 판매·공간·무인 운영형",
+  "name": "스마트스토어 운영자",
+  "concept": "온라인 쇼핑몰을 열어 상품을 등록·판매하고 배송까지 관리하는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주15~30h",
+  "stamina": "중",
+  "flex": "완전자유",
+  "place": "재택",
+  "license": "불필요",
+  "income": "자산형",
+  "type_no": 10,
+  "income_raw": "",
+  "income_min": 30,
+  "income_max": 200,
+  "income_est": true,
+  "income_basis": "시장 추정(자산·사업형 — 변동폭 넓음)",
+  "attract": 3.2
+ },
+ {
+  "no": "095",
+  "type_name": "10. 판매·공간·무인 운영형",
+  "name": "해외 구매대행 사업자",
+  "concept": "해외 상품을 국내 소비자 대신 주문·배송해주고 수수료를 얻는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★",
+  "time": "주15~30h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "재택",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 10,
+  "income_raw": "",
+  "income_min": 50,
+  "income_max": 250,
+  "income_est": true,
+  "income_basis": "시장 추정(자산·사업형 — 변동폭 넓음)",
+  "attract": 3.2
+ },
+ {
+  "no": "098",
+  "type_name": "10. 판매·공간·무인 운영형",
+  "name": "무인점포 운영자",
+  "concept": "직원 없이 운영되는 매장을 열고 원격으로 관리하는 일",
+  "cost": "₩₩₩₩₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "점포",
+  "license": "불필요",
+  "income": "자산형",
+  "type_no": 10,
+  "income_raw": "",
+  "income_min": 50,
+  "income_max": 250,
+  "income_est": true,
+  "income_basis": "시장 추정(자산·사업형 — 변동폭 넓음)",
+  "attract": 3.2
+ },
+ {
+  "no": "099",
+  "type_name": "10. 판매·공간·무인 운영형",
+  "name": "자판기 운영자",
+  "concept": "자판기를 설치·운영하며 상품을 채우고 수익을 관리하는 일",
+  "cost": "₩₩₩",
+  "difficulty": "★★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "완전자유",
+  "place": "현장",
+  "license": "불필요",
+  "income": "자산형",
+  "type_no": 10,
+  "income_raw": "",
+  "income_min": 30,
+  "income_max": 150,
+  "income_est": true,
+  "income_basis": "시장 추정(자산·사업형 — 변동폭 넓음)",
+  "attract": 3.2
+ },
+ {
+  "no": "005",
+  "type_name": "1. 디지털·AI 실무형",
+  "name": "데이터 라벨러",
+  "concept": "AI 학습에 쓰이는 이미지·음성·문장에 정답 표시를 달아주는 일",
+  "cost": "₩",
+  "difficulty": "★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "재택",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 1,
+  "income_raw": "200만원",
+  "income_min": 200,
+  "income_max": 200,
+  "income_est": false,
+  "attract": 3.0
+ },
+ {
+  "no": "091",
+  "type_name": "9. 생활밀착 서비스형",
+  "name": "약국 사무원",
+  "concept": "약국에서 조제 보조와 수납, 재고 관리를 담당하는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주15~30h",
+  "stamina": "하",
+  "flex": "고정",
+  "place": "점포",
+  "license": "불필요",
+  "income": "시간제",
+  "type_no": 9,
+  "income_raw": "시급 10320원 ~ 15000원",
+  "income_min": 98,
+  "income_max": 142,
+  "income_est": true,
+  "attract": 2.75
+ },
+ {
+  "no": "100",
+  "type_name": "10. 판매·공간·무인 운영형",
+  "name": "농어촌민박 운영자",
+  "concept": "농어촌 지역의 주택을 민박으로 등록해 숙박을 제공하는 일",
+  "cost": "₩₩₩₩",
+  "difficulty": "★★★",
+  "time": "주15~30h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "점포",
+  "license": "교육이수",
+  "income": "자산형",
+  "type_no": 10,
+  "income_raw": "300만원",
+  "income_min": 300,
+  "income_max": 300,
+  "income_est": false,
+  "attract": 2.75
+ },
+ {
+  "no": "006",
+  "type_name": "1. 디지털·AI 실무형",
+  "name": "앱 사용성 평가원",
+  "concept": "출시 전 앱·웹을 직접 써보고 불편한 점을 찾아 보고하는 일",
+  "cost": "₩",
+  "difficulty": "★",
+  "time": "주5h 미만",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "재택",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 1,
+  "income_raw": "",
+  "income_min": 10,
+  "income_max": 50,
+  "income_est": true,
+  "income_basis": "시장 추정(창작·비정기 — 하위 중앙값 기준)",
+  "attract": 2.7
+ },
+ {
+  "no": "044",
+  "type_name": "5. 취미·문화·건강 지도형",
+  "name": "도슨트",
+  "concept": "미술관·박물관에서 전시 작품을 관람객에게 해설하는 일",
+  "cost": "₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "교육이수",
+  "income": "건별",
+  "type_no": 5,
+  "income_raw": "",
+  "income_min": 52,
+  "income_max": 64,
+  "income_est": true,
+  "income_basis": "시장 추정(시급제 환산: 시급 1.0~1.5만원 × 주간시간 밴드 × 4.3주)",
+  "attract": 2.7
+ },
+ {
+  "no": "071",
+  "type_name": "8. 돌봄·통합케어형",
+  "name": "시니어 생활지원사",
+  "concept": "홀로 사는 어르신을 방문해 안부를 살피고 생활을 지원하는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주15~30h",
+  "stamina": "중",
+  "flex": "고정",
+  "place": "방문",
+  "license": "교육이수",
+  "income": "시간제",
+  "type_no": 8,
+  "income_raw": "",
+  "income_min": 52,
+  "income_max": 64,
+  "income_est": true,
+  "income_basis": "시장 추정(시급제 환산: 시급 1.0~1.5만원 × 주간시간 밴드 × 4.3주)",
+  "attract": 2.7
+ },
+ {
+  "no": "075",
+  "type_name": "8. 돌봄·통합케어형",
+  "name": "아이 등·하원 지원자",
+  "concept": "아이의 등원·하원길을 동행하고 잠시 돌봐주는 일",
+  "cost": "₩",
+  "difficulty": "★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "협의가능",
+  "place": "방문",
+  "license": "교육이수",
+  "income": "시간제",
+  "type_no": 8,
+  "income_raw": "",
+  "income_min": 47,
+  "income_max": 60,
+  "income_est": true,
+  "income_basis": "시장 추정(시급제 환산: 시급 1.0~1.5만원 × 주간시간 밴드 × 4.3주)",
+  "attract": 2.7
+ },
+ {
+  "no": "078",
+  "type_name": "8. 돌봄·통합케어형",
+  "name": "어린이 통학차량 동승보호자",
+  "concept": "어린이 통학차량에 함께 타 승하차와 안전을 책임지는 일",
+  "cost": "₩",
+  "difficulty": "★",
+  "time": "주5~15h",
+  "stamina": "중",
+  "flex": "고정",
+  "place": "현장",
+  "license": "교육이수",
+  "income": "시간제",
+  "type_no": 8,
+  "income_raw": "",
+  "income_min": 47,
+  "income_max": 56,
+  "income_est": true,
+  "income_basis": "시장 추정(시급제 환산: 시급 1.0~1.5만원 × 주간시간 밴드 × 4.3주)",
+  "attract": 2.7
+ },
+ {
+  "no": "092",
+  "type_name": "9. 생활밀착 서비스형",
+  "name": "시험 감독·진행요원",
+  "concept": "채용·어학·자격 시험 현장에서 감독과 진행을 맡는 일",
+  "cost": "₩",
+  "difficulty": "★",
+  "time": "주5h 미만",
+  "stamina": "중",
+  "flex": "완전자유",
+  "place": "현장",
+  "license": "불필요",
+  "income": "시간제",
+  "type_no": 9,
+  "income_raw": "30~40만원",
+  "income_min": 40,
+  "income_max": 40,
+  "income_est": false,
+  "attract": 2.5
+ },
+ {
+  "no": "023",
+  "type_name": "3. 커리어·심리 상담형",
+  "name": "사주명리 상담가",
+  "concept": "사주명리 해석을 바탕으로 진로·인간관계 등 삶의 고민을 상담하는 일",
+  "cost": "₩",
+  "difficulty": "★★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "온라인",
+  "license": "불필요",
+  "income": "건별",
+  "type_no": 3,
+  "income_raw": "건당 1~2만원선",
+  "income_min": 2,
+  "income_max": 2,
+  "income_est": false,
+  "attract": 2.0
+ },
+ {
+  "no": "022",
+  "type_name": "3. 커리어·심리 상담형",
+  "name": "타로상담가",
+  "concept": "타로카드를 매개로 내담자의 고민을 함께 정리하고 방향을 찾아주는 일",
+  "cost": "₩",
+  "difficulty": "★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "완전자유",
+  "place": "온라인",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 3,
+  "income_raw": "30만원",
+  "income_min": 30,
+  "income_max": 30,
+  "income_est": false,
+  "attract": 1.75
+ },
+ {
+  "no": "093",
+  "type_name": "9. 생활밀착 서비스형",
+  "name": "행사·박람회 진행요원",
+  "concept": "공연·박람회·팝업 현장에서 안내와 운영을 지원하는 일",
+  "cost": "₩",
+  "difficulty": "★",
+  "time": "주5h 미만",
+  "stamina": "상",
+  "flex": "완전자유",
+  "place": "현장",
+  "license": "불필요",
+  "income": "시간제",
+  "type_no": 9,
+  "income_raw": "",
+  "income_min": 15,
+  "income_max": 19,
+  "income_est": true,
+  "income_basis": "시장 추정(시급제 환산: 시급 1.0~1.5만원 × 주간시간 밴드 × 4.3주)",
+  "attract": 1.7
+ },
+ {
+  "no": "021",
+  "type_name": "3. 커리어·심리 상담형",
+  "name": "심리상담사",
+  "concept": "마음의 어려움을 겪는 사람과 대화하며 문제 해결을 돕는 일",
+  "cost": "₩₩",
+  "difficulty": "★★★★",
+  "time": "주5~15h",
+  "stamina": "하",
+  "flex": "협의가능",
+  "place": "현장",
+  "license": "민간자격",
+  "income": "건별",
+  "type_no": 3,
+  "income_raw": "200만원",
+  "income_min": 200,
+  "income_max": 200,
+  "income_est": false,
+  "attract": 0.75
+ },
+ {
+  "no": "079",
+  "type_name": "9. 생활밀착 서비스형",
+  "name": "가사관리사",
+  "concept": "가정을 방문해 청소·정리·세탁 등 집안일을 대신해주는 일",
+  "cost": "₩",
+  "difficulty": "★",
+  "time": "주15~30h",
+  "stamina": "상",
+  "flex": "협의가능",
+  "place": "방문",
+  "license": "교육이수",
+  "income": "시간제",
+  "type_no": 9,
+  "income_raw": "시간당 13000원",
+  "income_min": 123,
+  "income_max": 123,
+  "income_est": true,
+  "attract": 0.25
+ }
+];
+
+const QUESTIONS=[
+ {no:'Q1',layer:'1층 · 자원 제약',text:'일하러 나가는 건 어느 정도 괜찮으세요?',opts:[
+  {l:'집에서만 해요',t:'재택·온라인'},{l:'가까운 동네까지는 괜찮아요',t:'방문·점포'},{l:'먼 곳에 나가거나 이동하는 일도 괜찮아요',t:'현장'}]},
+ {no:'Q2',layer:'1층 · 자원 제약',text:'이 일에 쓸 수 있는 시간은 일주일에 얼마나 있나요?',opts:[
+  {l:'하루 1~2시간씩',t:'주 5시간 미만'},{l:'주 2~3번, 반나절씩',t:'주 5~15시간'},{l:'주 4~5일',t:'주 15~30시간'},{l:'거의 매일, 풀타임으로',t:'주 30시간 이상'}]},
+ {no:'Q3',layer:'1층 · 자원 제약',text:'일하는 시간은 어떻게 갖고 싶으세요?',opts:[
+  {l:'원할 때 자유롭게',t:'완전자유'},{l:'약속은 있지만 조율은 돼요',t:'협의가능'},{l:'정해진 요일·시간에 규칙적으로',t:'고정'}]},
+ {no:'Q4',layer:'1층 · 자원 제약',text:'자격증이나 교육은 어디까지 준비할 수 있나요?',opts:[
+  {l:'없이 바로 시작하고 싶어요',t:'자격 불필요'},{l:'짧은 교육(1~3개월)까지는 괜찮아요',t:'교육이수'},{l:'자격증 시험까지 준비할 수 있어요',t:'민간·국가자격'}]},
+ {no:'Q5',layer:'1층 · 자원 제약',text:'시작할 때 쓸 수 있는 돈은 어느 정도인가요?',opts:[
+  {l:'10만원 이하',t:'₩'},{l:'50만원 정도까지',t:'₩₩'},{l:'100만원 이상',t:'₩₩₩ 이상'}]},
+ {no:'Q6',layer:'1층 · 자원 제약',text:'몸을 움직이는 일은 괜찮으세요?',opts:[
+  {l:'앉아서 하는 일이 좋아요',t:'체력 부담 하'},{l:'가벼운 활동은 괜찮아요',t:'체력 부담 중'},{l:'몸을 쓰는 일도 좋아요',t:'체력 부담 상'}]},
+ {no:'Q7',layer:'2층 · 동기·목적',text:'첫 수입은 언제쯤부터면 좋겠나요?',opts:[
+  {l:'이번 달부터라도',t:'건별·시간제'},{l:'세 달쯤 준비하고부터',t:'월정액·안정형'},{l:'일 년을 봐도 괜찮아요',t:'성장·자산형'},{l:'수입은 크게 기대하지 않아요',t:'의미·활동 중심'}]},
+ {no:'Q8',layer:'2층 · 동기·목적',text:'한 달에 얼마나 벌면 좋겠나요?',opts:[
+  {l:'30만원 이하',t:'용돈 보태기'},{l:'30~100만원',t:'생활비 보탤 만큼'},{l:'100~300만원',t:'주업에 버금가게'},{l:'300만원 이상',t:'사업처럼 키우기'}]},
+ {no:'Q9',layer:'2층 · 동기·목적',text:'어떻게 받는 수입이 좋나요?',opts:[
+  {l:'일한 만큼 바로바로',t:'건별·시간제'},{l:'모았다가 크게',t:'월정액·자산형'},{l:'아무거나 괜찮아요',t:''}]},
+ {no:'Q10',layer:'2층 · 동기·목적',text:'시작하려는 이유에 가장 가까운 하나는?',opts:[
+  {l:'생활비 보태기',t:'생활비 보완형'},{l:'사람 만나고 활동하기',t:'사회활동형'},{l:'오래갈 커리어 만들기',t:'커리어 확장형'},{l:'내 돈 굴리기',t:'자산·사업형'}]},
+ {no:'Q11',layer:'3층 · 경험 자본',text:'오래 해온 일은 무엇인가요?',hint:'최대 두 개까지 고를 수 있어요.',multi:true,opts:[
+  {l:'서류·관리·사무'},{l:'손님 응대·판매·안내'},{l:'가르치고 설명하기'},{l:'손재주·수리·기술'},{l:'돌봄·육아·간병'},{l:'글·그림·사진·영상'}]},
+ {no:'Q12',layer:'3층 · 경험 자본',text:'컴퓨터나 스마트폰은 어느 정도 다루시나요?',opts:[
+  {l:'통화·문자·사진 보기 정도'},{l:'문서·엑셀은 할 수 있어요'},{l:'영상 편집·AI 도구도 써봤어요'}]},
+ {no:'Q13',layer:'3층 · 경험 자본',text:'모임이나 행사를 주관해 본 적이 있나요?',opts:[
+  {l:'운영·진행해 봤어요'},{l:'참여만 해봤어요'},{l:'없어요'}]},
+ {no:'Q14',layer:'3층 · 경험 자본',text:'자격증이나 면허가 있나요?',hint:'운전면허는 제외해요.',license:true,opts:[
+  {l:'없어요'},{l:'있어요 — 자격명을 적어주세요',t:'예: 요양보호사, 강사 자격, 전문 자격'}]},
+ {no:'Q15',layer:'4층 · 성향·선호',text:'어떻게 일할 때 가장 편하세요?',opts:[
+  {l:'사람을 만나 일할 때'},{l:'사람도 만나고, 혼자도 있을 때'},{l:'혼자 조용히 몰입할 때'}]},
+ {no:'Q16',layer:'4층 · 성향·선호',text:'일의 방식은 어떤 게 끌리나요?',opts:[
+  {l:'정해진 매뉴얼대로'},{l:'틀은 지키되 나만의 방식으로'},{l:'처음부터 내 방식대로'}]},
+ {no:'Q17',layer:'4층 · 성향·선호',text:'숫자 목표를 채우며 일하는 건 어때요?',hint:'매출·물량·조회수 같은 목표예요.',opts:[
+  {l:'좋아요, 채우면 뿌듯해요'},{l:'부담스러워요'}]},
+ {no:'Q18',layer:'4층 · 성향·선호',text:'이 일을 주변에 말할 수 있어야 하나요?',opts:[
+  {l:'네, 말할 수 있어야 해요'},{l:'아니요, 수입이 중요해요'}]},
+ {no:'Q19',layer:'4층 · 성향·선호',text:'일하면서 계속 새로운 걸 배우는 건 어떤가요?',opts:[
+  {l:'좋아요, 전문가가 되어가는 맛이에요'},{l:'부담돼요, 익힌 만큼만 하고 싶어요'}]},
+ {no:'Q20',layer:'5층 · 활동 여건',text:'일하는 환경은 어디가 좋으세요?',opts:[
+  {l:'주로 실내에서'},{l:'야외에서 활동적으로',t:'파크골프·숲해설·수목치료·드론방제 등'},{l:'상관없어요'}]},
+ {no:'Q21',layer:'5층 · 활동 여건',text:'일할 때 쓸 수 있는 차가 있나요?',opts:[
+  {l:'있어요 — 운전해서 일할 수 있어요',t:'플랫폼택시·탁송·배송·여행 인솔 등'},{l:'없어요'}]},
+ {no:'Q22',layer:'5층 · 활동 여건',text:'어떤 분들과 일하고 싶으세요?',opts:[
+  {l:'또래·시니어와',t:'경로당 강사·노인운동·인지활동 등'},{l:'아동·청소년과',t:'동화구연·등하원 지원 등'},{l:'누구든 괜찮아요'},{l:'사람보다 일에 집중하고 싶어요'}]},
+ {no:'Q23',layer:'5층 · 활동 여건',text:'마음에 드는 일이 조건 하나만 안 맞으면 — 교육을 받거나 준비해서라도 도전해 볼까요?',opts:[
+  {l:'도전해 보고 싶어요',t:'조건부 추천도 보여드려요'},{l:'지금 바로 할 수 있는 것만 보여주세요'}]},
+ {no:'Q24',layer:'5층 · 활동 여건',text:'일감은 어떻게 굴러오는 게 편하세요?',opts:[
+  {l:'기관·센터 통로로 정해지는 게 편해요',t:'직업상담·전직지원·해설·안내·돌봄 등'},{l:'내 서비스를 직접 알리고 싶어요',t:'플랫폼·SNS 등록형'},{l:'크게 상관없어요'}]},
+ {no:'Q25',layer:'5층 · 활동 여건',text:'일의 중심은 어떤 걸 원하세요?',hint:'하나만 골라주세요.',opts:[
+  {l:'사람을 가르치거나 조언하기',t:'컨설턴트·강사·상담·심사·액셀러레이터'},{l:'여행·숙박·손님 맞이하기',t:'시니어 여행 인솔·트래블헬퍼·농어촌민박'},{l:'동물을 돌보고 훈련하기',t:'반려견 산책·훈련사·펫 미용 등'},{l:'화면·작업물에 집중하기',t:'디지털·창작 계열'},{l:'크게 상관없어요'}]},
+ {no:'Q26',layer:'5층 · 활동 여건',text:'일을 익히는 방식은 어느 쪽이 편하세요?',opts:[
+  {l:'짧게 배워 빨리 시작하고 싶어요',t:'쉬운 시작형'},{l:'익숙해지는 데 걸려도 내 전문성이 되는 일이 좋아요',t:'전문형'},{l:'크게 상관없어요'}]},
+ {no:'Q27',layer:'6층 · 추천 기준',text:'추천해 드릴 때 무엇을 더 우선할까요?',opts:[
+  {l:'수익성이 좋고 주변이 보기에도 좋은 일 위주로'},{l:'내 조건과 경험에 맞는 일 위주로'},{l:'둘 다 비슷하게'}]},
+ {no:'Q28',layer:'6층 · 선호 분야',text:'평소에 유독 눈길 가는 분야가 있나요?',hint:'가장 가까운 하나를 골라주세요.',opts:[
+  {l:'커피·음료·카페 쪽'},{l:'마음·심리·상담 쪽'},{l:'숲·자연·야외 활동 쪽'},{l:'손으로 만지는 기술·설비 점검 쪽'},{l:'시골 생활·농촌 경영 쪽'},{l:'딱히 없음'}]}
+];
+
+const app=document.getElementById('app');
+let idx=-1;
+const ans={};            // Q11:[codes], Q14:{sel,name}, others: code
+const TOTAL=QUESTIONS.length;
+
+function progressHTML(){
+  const f=Math.max(0,Math.min(1,(idx)/TOTAL))*100;
+  return `<div class="progress"><div class="bar"><div class="fill" style="width:${f}%"></div></div>
+  <div class="pmeta"><span class="layer-chip">${QUESTIONS[idx]?QUESTIONS[idx].layer:''}</span><span>${idx+1} / ${TOTAL}</span></div></div>`;
+}
+function intro(){
+  app.innerHTML=`<section class="hero">
+    <div class="seal">百</div>
+    <h1 class="title">28가지 질문으로<br><em>나의 N잡</em>을 찾아드립니다</h1>
+    <p class="sub">오래 해온 경험과 지금의 여건에 맞는 일을 골라 드려요. 조건이 맞지 않는 일은 애초에 보여드리지 않습니다.</p>
+    <div class="badges"><span>문항 <b>28개</b></span><span>소요 <b>약 4분</b></span><span>결과 <b>2~6개 추천</b></span></div>
+    <button class="cta" id="go">진단 시작하기</button>
+    <p class="fineprint">진단 결과는 접어두었다가 언제든 다시 볼 수 있어요. 같은 답에는 같은 결과가 나옵니다.</p>
+  </section>`;
+  document.getElementById('go').onclick=()=>{idx=0;renderQ();window.scrollTo(0,0);};
+}
+function renderQ(){
+  const q=QUESTIONS[idx];
+  let body='';
+  if(q.license){
+    const a=ans.Q14||{sel:null,name:''};
+    body=`<div class="opts">
+      ${q.opts.map((o,i)=>`<button class="opt ${a.sel===i?'sel':''}" data-i="${i}"><span class="tick"></span><span class="opt-main">${o.l}</span>${o.t?`<span class="opt-tag">${o.t}</span>`:''}</button>`).join('')}
+    </div>
+    <div class="lic-input" id="licwrap" style="display:${a.sel===1?'block':'none'}">
+      <input id="licname" type="text" value="${(a.name||'').replace(/"/g,'&quot;')}" placeholder="자격명을 적어주세요" aria-label="자격명 입력">
+      <div class="cap">자격명을 그대로 적어주시면 그 일과 가장 가까운 잡을 찾아드려요. 비워 두어도 괜찮아요.</div>
+    </div>
+    <div class="qnav"><button class="nav" id="prev">이전</button><button class="nav primary" id="next" ${a.sel===null?'disabled':''}>${idx===TOTAL-1?'진단 결과 보기':'다음'}</button></div>`;
+  }else{
+    const selArr=q.multi?(ans.Q11||[]):(ans[q.no]!==undefined?[ans[q.no]]:[]);
+    body=`<div class="opts ${q.multi?'multi':''}">
+      ${q.opts.map((o,i)=>`<button class="opt ${selArr.includes(i+1)?'sel':''}" data-i="${i}" aria-pressed="${selArr.includes(i+1)}"><span class="tick"></span><span class="opt-main">${o.l}</span>${o.t?`<span class="opt-tag">${o.t}</span>`:''}</button>`).join('')}
+    </div>
+    <div class="qnav"><button class="nav" id="prev">이전</button>${q.multi?`<button class="nav primary" id="next" ${(ans.Q11&&ans.Q11.length>=1)?'':'disabled'}>${idx===TOTAL-1?'진단 결과 보기':'다음'}</button>`:''}</div>`;
+  }
+  app.innerHTML=progressHTML()+`<section class="qcard">
+    <span class="q-no"><span class="n">${q.no}</span>${q.layer}</span>
+    <h2 class="q-text">${q.text}</h2>
+    ${q.hint?`<p class="q-hint">${q.hint}</p>`:''}
+    ${body}
+  </section>`;
+
+  const prev=document.getElementById('prev');
+  if(prev)prev.onclick=()=>{idx--;renderQ();window.scrollTo(0,0);};
+
+  if(q.license){
+    app.querySelectorAll('button.opt').forEach((b,i)=>b.onclick=()=>{
+      const a=ans.Q14||{sel:null,name:''};
+      a.sel=i; ans.Q14=a;
+      document.getElementById('licwrap').style.display=i===1?'block':'none';
+      app.querySelectorAll('button.opt').forEach(x=>x.classList.toggle('sel',x===b));
+      document.getElementById('next').disabled=false;
+      if(i===0){/* 바로 넘어가지 않고 다음으로 확인 */}
+    });
+    document.getElementById('next').onclick=()=>{
+      if(ans.Q14.sel===1)ans.Q14.name=(document.getElementById('licname')||{value:''}).value.trim();
+      idx++;next();
+    };
+  }else if(q.multi){
+    app.querySelectorAll('button.opt').forEach((b,i)=>{
+      b.onclick=()=>{
+        const cur=ans.Q11||[];
+        const code=i+1;
+        let nw;
+        if(cur.includes(code)){nw=cur.filter(x=>x!==code);if(nw.length===0)return;}
+        else if(cur.length>=2)return;
+        else nw=[...cur,code];
+        ans.Q11=nw;
+        app.querySelectorAll('button.opt').forEach((x,j)=>{
+          const on=nw.includes(j+1);
+          x.classList.toggle('sel',on);x.setAttribute('aria-pressed',on);
+          x.classList.toggle('dim',!on&&nw.length>=2);
+        });
+        document.getElementById('next').disabled=false;
+      };
+    });
+    document.getElementById('next').onclick=()=>{idx++;next();};
+  }else{
+    app.querySelectorAll('button.opt').forEach((b,i)=>b.onclick=()=>{
+      ans[q.no]=i+1;
+      b.classList.add('sel');
+      setTimeout(()=>{idx++;next();},140);
+    });
+  }
+}
+function next(){
+  if(idx<QUESTIONS.length){renderQ();window.scrollTo(0,0);}
+  else stamping();
+}
+function buildAnswers(){
+  const a={};
+  for(const q of QUESTIONS){
+    if(q.no==='Q11')a.Q11=(ans.Q11||[]).slice(0,2);
+    else if(q.no==='Q14'){const v=ans.Q14||{sel:0,name:''};a.Q14=v.sel===1?{has:true,name:v.name||'',typeBonus:licenseTypeBonus(v.name||'')}:{has:false};}
+    else a[q.no]=ans[q.no];
+  }
+  return a;
+}
+function stamping(){
+  app.innerHTML=`<section class="stamping">
+    <div class="seal">百</div>
+    <p>경험과 여건을 맞춰 보고 있어요</p>
+    <p class="d">100가지 잡 중에서 조건이 맞는 것만 골라 담는 중입니다</p>
+  </section>`;
+  setTimeout(()=>{
+    const r=recommend(buildAnswers(),JOBS);
+    renderResults(r);
+    window.scrollTo(0,0);
+  },1300);
+}
+function renderResults(r){
+  const rankLabel=['1순위','2순위','3순위','4순위','5순위','6순위'];
+  const cards=r.results.map((x,i)=>`
+    <article class="card ${i===0?'top1':''}">
+      ${i===0?'<div class="stamp">적합<small>백잡사전</small></div>':''}
+      <div class="rank-line"><span class="rank">${rankLabel[i]||''}</span></div>
+      <h3 class="jname">${x.no} ${x.name}</h3>
+      <span class="jtype">${x.type}</span>
+      <p class="jconcept">${x.concept||''}</p>
+      <p class="jincome"><span class="lbl">한 달 수입 — </span>${x.income||'정보 없음'}</p>
+      <div class="metas">${(()=>{const j=JOBS.find(v=>v.no===x.no);return `<span>시작비용 ${j.cost}</span><span>주간시간 ${j.time}</span><span>체력부담 ${j.stamina}</span><span>유연성 ${j.flex}</span><span>장소 ${j.place}</span><span>자격 ${j.license}</span>`;})()}</div>
+      <ul class="why">${x.reasons.map(w=>`<li>${w}</li>`).join('')}</ul>
+      ${x.conditional?`<div class="cond">단, ${x.conditional.join(' · ')} 조건을 하나 채우면 시작할 수 있어요</div>`:''}
+    </article>`).join('');
+  app.innerHTML=`<section class="res-head">
+      <div class="seal-mini">百</div>
+      <h2 class="res-title">당신에게 맞는 잡<br>${r.count}개를 찾았습니다</h2>
+      <p class="res-sub">시작 조건(비용·자격·시간·체력)을 통과한 ${r.pool_size}개 중에서 경험과 성향이 가장 잘 맞는 순서예요.${r.relaxed&&r.relaxed.length?`<br>조건이 맞는 일이 적어 ${r.relaxed.join(' → ')}까지 살펴봤어요.`:''}</p>
+    </section>${cards}
+    <div class="again"><button class="nav" id="reset">답변 고치고 다시 진단하기</button></div>`;
+  document.getElementById('reset').onclick=()=>{for(const k of Object.keys(ans))delete ans[k];idx=-1;intro();window.scrollTo(0,0);};
+}
+/* 데모: index.html#demo 로 열면 샘플 답변으로 결과 화면까지 점프(테스트용) */
+if(location.hash==='#demo'){
+  Object.assign(ans,{Q1:2,Q2:3,Q3:2,Q4:2,Q5:1,Q6:2,Q7:2,Q8:2,Q9:1,Q10:2,Q11:[2,5],Q12:2,Q13:3,Q14:{sel:1,name:'심리상담사'},Q15:2,Q16:2,Q17:2,Q18:1,Q19:2,Q20:3,Q21:2,Q22:3,Q23:1,Q24:2,Q25:5,Q26:3,Q27:3,Q28:2});
+  const r=recommend(buildAnswers(),JOBS);renderResults(r);
+}else intro();
+</script>
+</body>
+</html>

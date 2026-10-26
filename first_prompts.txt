@@ -1,0 +1,17 @@
+첫 세션에서 이 순서로 지시하세요.
+
+1) 프로젝트 파악 확인:
+"CLAUDE.md와 파일들을 읽었니? scoring.js의 recommend 함수 입력·출력 구조를 한 문장씩 요약해줘."
+→ 요약이 맞는지 확인되면 다음 단계로. (프로젝트 이해도 테스트 겸사)
+
+2) 동작 확인:
+"node verify.js 실행하고 결과를 보여줘."
+→ 통과 기준(최악 경로 2개, 결정성, 커버리지)이 그대로 나오는지 확인.
+
+3) 첫 실제 작업 예시 — Supabase 연결(키 발급 후):
+"Supabase 프로젝트 URL과 anon key는 환경변수 SUPABASE_URL, SUPABASE_ANON_KEY로 읽어.
+결과 화면에서 진단 응답 28개와 추천 잡 번호 배열, 타임스탬프를 responses 테이블에 저장하는
+코드를 추가해줘. 채점 로직(scoring.js)은 절대 건드리지 말고, 실패해도 진단 자체는
+계속 작동하게 try-catch로 처리해줘. 완료 후 node verify.js 돌려줘."
+
+주의: 비밀키(service_role)는 절대 코드에 넣지 말 것. .env는 .gitignore에 등록할 것.
