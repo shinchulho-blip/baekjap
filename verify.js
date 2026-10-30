@@ -1,91 +1,113 @@
-const { recommend, licenseTypeBonus } = require('./scoring.js');
+// ============================================================
+// 회귀 검증 v2.0 — node verify.js (실패 항목이 있으면 종료 코드 1)
+// ============================================================
+const fs = require('fs');
+const S = require('./scoring.js');
+const { recommend, conditionCheck, FIELD_JOBS, CAR_REQUIRED, MIN_RESULTS, MAX_RESULTS, MAX_SOFT_FAILS, WANT_MIN } = S;
 const jobs = require('./jobs.json');
-const rand = a => a[Math.floor(Math.random()*a.length)];
+const { makeGenerator } = require('./profiles.js');
 
-// ---- 각 잡의 '최적 응답 프로필' 구성 (구성적 도달성 증명) ----
-const EXP_FOR_TYPE = t => ({1:6,2:1,3:1,4:3,5:3,6:6,7:4,8:5,9:2,10:2}[t]);
-const Q11CODE_FOR_TYPE = t => ({1:6,2:1,3:1,4:3,5:3,6:6,7:4,8:5,9:2,10:2}[t]);
-const LIC_KEYWORD_FOR = j => {
-  const kws = ['요양','간병','산후','도우미','복지','강사','교육','한국어','체험','스포츠','운동','요가','필라테스','골프','안마','심리','상담','커리어','직업','전기','소방','용접','에어컨','가전','목공','농업','농장','드론','안전','건설','미용','펫','동물','운전','정리수납','가사'];
-  return kws.find(k => (j.name.includes(k) || (j.concept||'').includes(k)) && licenseTypeBonus(k).length>0);
+let failed = 0;
+const check = (ok, label, detail = '') => {
+  console.log(`${ok ? '통과' : '실패'} | ${label}${detail ? ' — ' + detail : ''}`);
+  if (!ok) failed++;
 };
-function bestProfile(j){
-  const t = j.type_no;
-  const q8 = (j.income_min!==null && j.income_max<30) ? 1 : (j.income_min>=300 ? 4 : (j.income_max>=30 && j.income_min<=100) ? 2 : (j.income_max>=100 ? 3 : 2));
-  const lic = LIC_KEYWORD_FOR(j);
-  return {
-    Q1: ['재택','온라인'].includes(j.place)?1:(['방문','점포'].includes(j.place)?2:3),
-    Q2: ['주5h 미만','주5~15h','주15~30h','주30h 이상'].indexOf(j.time)+1,
-    Q3: j.flex==='고정'?3:(j.flex==='완전자유'?1:2),
-    Q4: j.license==='불필요'?1:(j.license==='교육이수'?2:3),
-    Q5: ['₩','₩₩','₩₩₩','₩₩₩₩','₩₩₩₩₩'].indexOf(j.cost)<=0?1:(['₩','₩₩'].includes(j.cost)?['₩','₩₩'].indexOf(j.cost)+1:3),
-    Q6: j.stamina==='하'?1:(j.stamina==='중'?2:3),
-    Q7: (j.income==='건별'||j.income==='시간제')?1:(j.income==='월정액'?2:3),
-    Q8: q8,
-    Q9: (j.income==='건별'||j.income==='시간제')?1:2,
-    Q10: [4,5,8,9].includes(t)?2:([1,2,3,6].includes(t)?3:(t===10?4:1)),
-    Q11: [Q11CODE_FOR_TYPE(t)],
-    Q12: t===1?3:2, Q13: (t===4||t===5)?1:3,
-    Q14: lic ? {has:true, name:lic, typeBonus:licenseTypeBonus(lic)} : {has:false},
-    Q27: 3,
-    Q28: { '021':2,'037':1,'043':3,'056':4,'061':4,'100':5 }[j.no] || 6, // v0.7 선호 분야 직결 매핑
-    Q26: SIMPLE_JOBS.includes(j.no)?1:2,
-    Q25: [2,3,4].includes(t)?1:(TRAVEL_JOBS.includes(j.no)?2:(PET_JOBS.includes(j.no)?3:([1,6].includes(t)?4:5))),
-    Q24: INST_JOBS.includes(j.no)?1:2,
-    Q23: 1,
-    Q20: OUTDOOR_JOBS.includes(j.no)?2:3, Q21: VEHICLE_JOBS.includes(j.no)?1:2,
-    Q22: SENIOR_JOBS.includes(j.no)?1:(KIDS_JOBS.includes(j.no)?2:3),
-    Q15: [3,4,5,8,9].includes(t)?1:([1,6,7].includes(t)?3:2),
-    Q16: [7,8,9].includes(t)?1:([1,2,6,10].includes(t)?3:2),
-    Q17: [1,2,10].includes(t)?1:([4,5,8].includes(t)?2:1),
-    Q18: ['022','023','090'].includes(j.no)?2:1,
-    Q19: (j.difficulty==='★★★★'||j.difficulty==='★★★★★')?1:(([7,9].includes(t))&&['★','★★'].includes(j.difficulty)?2:([2,3,4].includes(t)?1:2)),
-  };
+const name = no => `${no} ${jobs.find(j => j.no === no).name}`;
+const inFields = (fields, no) => (fields || []).some(f => FIELD_JOBS[f].includes(no));
+
+// 1) 최악 경로: 3부 조건을 모두 가장 좁게 답하면 정확히 2개 (016, 006)
+const worst = { Q1: [], Q2: [], Q3: 5, Q4: 5, Q5: 2, Q6: 1, Q7: 1, Q8: [10], Q9: [], Q10: 1, Q11: 3, Q12: { has: false },
+  Q13: 3, Q14: 4, Q15: 1, Q16: 1, Q17: 1, Q18: 1, Q19: 1, Q20: 1, Q21: 1, Q22: 1, Q23: 2 };
+const w = recommend(worst, jobs);
+const worstNos = w.results.map(r => r.no).sort();
+check(w.count === 2 && worstNos.join() === '006,016', '최악 경로 출력 2개 (016, 006)', w.results.map(r => name(r.no)).join(', '));
+
+// 2) 결정성: 같은 답 → 같은 결과
+const gen = makeGenerator(2026, 'uniform');
+let det = true;
+for (let i = 0; i < 500; i++) {
+  const a = gen();
+  if (JSON.stringify(recommend(a, jobs)) !== JSON.stringify(recommend(JSON.parse(JSON.stringify(a)), jobs))) { det = false; break; }
 }
-// 선호 변이: 제약(Q1~Q6, Q8, Q11~Q14)은 잡 최적값 고정, 선호(Q3·Q7·Q9·Q10·Q15~Q19)는 변이
-function variants(j){
-  const p0 = bestProfile(j);
-  const rnd = (() => { let s = parseInt(j.no) * 7919; return () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648; })();
-  const ALTS = { Q3:[1,2,3], Q7:[1,2,3,4], Q9:[1,2,3], Q10:[1,2,3,4], Q15:[1,2,3], Q16:[1,2,3], Q17:[1,2], Q19:[1,2] };
-  const vs = [p0];
-  for (let i = 0; i < 11; i++) {
-    const p = { ...p0 };
-    for (const k of Object.keys(ALTS)) p[k] = ALTS[k][Math.floor(rnd() * ALTS[k].length)];
-    vs.push(p);
+check(det, '결정성 (같은 답 → 같은 결과, 500명)');
+check(!/Math\.random/.test(fs.readFileSync(__dirname + '/scoring.js', 'utf8')), 'scoring.js에 Math.random 없음');
+
+// 3) 분야 연결: 잡 100개 모두 1개 이상 분야에 연결
+const linked = new Set(Object.values(FIELD_JOBS).flat());
+check(linked.size === jobs.length && jobs.every(j => linked.has(j.no)), `분야 연결 ${linked.size} / ${jobs.length}`);
+
+// 4) 무작위 2만 명: 개수 2~6 · 절대 조건 위반 0 · 조건부는 부족 조건 2개 이하 · 하고 싶은 분야 최소 보장
+const N = 20000, freq = {}, dist = {};
+let hardViolations = 0, softViolations = 0, wantShort = 0, wantAsked = 0, wantGot = 0;
+const g = makeGenerator(7, 'uniform');
+for (let n = 0; n < N; n++) {
+  const a = g();
+  const r = recommend(a, jobs);
+  dist[r.count] = (dist[r.count] || 0) + 1;
+  for (const x of r.results) {
+    freq[x.no] = (freq[x.no] || 0) + 1;
+    const j = jobs.find(v => v.no === x.no);
+    if (conditionCheck(a, j) === null) hardViolations++;
+    if (x.conditional && x.conditional.length > MAX_SOFT_FAILS && !r.relaxed.length) softViolations++;
   }
-  return vs;
+  if (a.Q1.length) {
+    wantAsked++;
+    const got = r.results.filter(x => inFields(a.Q1, x.no)).length;
+    if (got) wantGot++;
+    const available = jobs.filter(j => inFields(a.Q1, j.no)).filter(j => { const s = conditionCheck(a, j); return s !== null && s.length <= MAX_SOFT_FAILS; }).length;
+    if (got < Math.min(WANT_MIN, available)) wantShort++;
+  }
 }
-const { OUTDOOR_JOBS, VEHICLE_JOBS, SENIOR_JOBS, KIDS_JOBS, INST_JOBS, TRAVEL_JOBS, PET_JOBS, CAPITAL_JOBS, SIMPLE_JOBS, PRO_JOBS } = require('./scoring.js');
-let ok = 0, fail = [];
+const counts = Object.keys(dist).map(Number);
+check(Math.min(...counts) >= MIN_RESULTS && Math.max(...counts) <= MAX_RESULTS, `출력 개수 ${MIN_RESULTS}~${MAX_RESULTS}개`, JSON.stringify(dist));
+check(hardViolations === 0, '절대 조건(집에서만·앉아서만·차 없음·하기 싫은 분야) 위반 0건', `${hardViolations}건`);
+check(softViolations === 0, `조건부 추천은 부족 조건 ${MAX_SOFT_FAILS}개 이하`, `${softViolations}건`);
+check(wantShort < N * 0.01, `하고 싶은 분야 잡 최소 ${WANT_MIN}개 보장 (가능한 경우)`, `미달 ${wantShort}명 / 분야 고른 ${wantAsked}명`);
+console.log(`     참고: 하고 싶은 분야를 고른 사람 중 그 분야 잡을 1개 이상 받은 비율 ${(wantGot / wantAsked * 100).toFixed(1)}%`);
+
+// 5) 커버리지: 무작위 2만 명 기준 전체 등장 + 1% 넘게 추천되는 잡 60개 이상
+const seen = Object.keys(freq).length;
+const over1 = jobs.filter(j => (freq[j.no] || 0) / N >= 0.01).length;
+check(seen === jobs.length, `무작위 커버리지 ${seen} / ${jobs.length}`, jobs.filter(j => !freq[j.no]).map(j => name(j.no)).join(', '));
+check(over1 >= 60, `응답자 1% 넘게에게 추천되는 잡 ${over1}개 (기준 60)`);
+const top = Object.entries(freq).sort((x, y) => y[1] - x[1]).slice(0, 3);
+console.log(`     참고: 최다 노출 ${top.map(([no, c]) => `${name(no)} ${(c / N * 100).toFixed(1)}%`).join(' | ')}`);
+
+// 6) 도달성: 각 잡의 분야를 '하고 싶은 일'로 고르고 조건을 그 잡에 맞춘 응답 중, 그 잡이 바로 추천되는 응답이 존재
+const TIME = ['주5h 미만', '주5~15h', '주15~30h', '주30h 이상'], COST = ['₩', '₩₩', '₩₩₩', '₩₩₩₩', '₩₩₩₩₩'];
+const unreachable = [];
 for (const j of jobs) {
-  const hit = variants(j).some(p => recommend(p, jobs).results.some(x => x.no === j.no));
-  if (hit) ok++; else fail.push(j.no + ' ' + j.name + '(pool ' + recommend(bestProfile(j), jobs).pool_size + ')');
+  const field = Number(Object.keys(FIELD_JOBS).find(f => FIELD_JOBS[f].includes(j.no)));
+  const fit = {
+    Q1: [field], Q2: [],
+    Q15: ['재택', '온라인'].includes(j.place) ? 1 : (j.place === '현장' ? 3 : 2),
+    Q16: TIME.indexOf(j.time) + 1, Q17: j.flex === '고정' ? 3 : 2,
+    Q18: { '하': 1, '중': 2, '상': 3 }[j.stamina],
+    Q19: Math.min(3, COST.indexOf(j.cost) + 1), Q20: j.license === '불필요' ? 1 : (j.license === '교육이수' ? 2 : 3), Q23: 1,
+  };
+  const gj = makeGenerator(100 + parseInt(j.no), 'uniform');
+  let ok = false;
+  for (let i = 0; i < 3000 && !ok; i++) {
+    const a = { ...gj(), ...fit };
+    ok = recommend(a, jobs).results.some(x => x.no === j.no && !x.conditional);
+  }
+  if (!ok) unreachable.push(name(j.no));
 }
-console.log('구성적 도달성(선호 변이 12종):', ok, '/ 100 잡이 최적 응답에서 6위 안 도달');
-if (fail.length) console.log('  미도달:', fail.join(', '));
+check(!unreachable.length, `도달성 ${jobs.length - unreachable.length} / ${jobs.length} (맞는 답이면 바로 추천)`, unreachable.join(', '));
 
-// ---- 랜덤 표집 커버리지 + 개수 분포 ----
-const base = { Q7:1,Q8:2,Q9:1,Q10:1,Q11:[],Q12:2,Q13:3,Q14:{has:false},Q15:2,Q16:2,Q17:2,Q18:2,Q19:2,Q20:3,Q21:2,Q22:3,Q23:2,Q24:3,Q25:5,Q26:3,Q27:3,Q28:6 };
-const LIC_NAMES = ['요양보호사','스포츠강사','운동지도사','펫미용사','심리상담사','전기기능사','한국어교원','정리수납전문가'];
-function genProfile(){
-  const exps=[rand([1,2,3,4,5,6])]; if(Math.random()<.6) exps.push(rand([1,2,3,4,5,6]));
-  const has=Math.random()<.3; const lic=has?rand(LIC_NAMES):null;
-  return { ...base, Q1:rand([1,2,3]),Q2:rand([1,2,3,4]),Q3:rand([1,2,3]),Q4:rand([1,2,3]),Q5:rand([1,2,3]),Q6:rand([1,2,3]),
-    Q7:rand([1,2,3,4]),Q8:rand([1,2,3,4]),Q9:rand([1,2,3]),Q10:rand([1,2,3,4]),Q11:exps,Q12:rand([1,2,3]),Q13:rand([1,2,3]),
-    Q14:has?{has:true,name:lic,typeBonus:licenseTypeBonus(lic)}:{has:false},
-    Q15:rand([1,2,3]),Q16:rand([1,2,3]),Q17:rand([1,2]),Q18:rand([1,2]),Q19:rand([1,2]),Q20:rand([1,2,3]),Q21:rand([1,2]),Q22:rand([1,2,3,4]),Q23:rand([1,2]),Q24:rand([1,2,3]),Q25:rand([1,2,3,4,5]),Q26:rand([1,2,3]),Q27:rand([1,2,3]),Q28:rand([1,2,3,4,5,6]) };
-}
-const seen=new Set(), dist={};
-for(let i=0;i<5000;i++){ const r=recommend(genProfile(),jobs); r.results.forEach(x=>seen.add(x.no)); dist[r.count]=(dist[r.count]||0)+1; }
-const never=jobs.filter(j=>!seen.has(j.no));
-console.log('랜덤 표집(5000명) top-6 커버리지:', seen.size, '/ 100 | 미도달:', never.length?never.map(j=>j.no).join(','):'없음');
-console.log('출력 개수 분포:', JSON.stringify(dist));
+// 7) index.html에 들어 있는 잡 데이터가 jobs.json과 같음
+const html = fs.readFileSync(__dirname + '/index.html', 'utf8');
+const m = html.match(/const JOBS = (\[[\s\S]*?\n\]);/);
+check(!!m && JSON.stringify(JSON.parse(m[1])) === JSON.stringify(jobs), 'index.html 잡 데이터 = jobs.json');
+check(/<script src="scoring\.js"><\/script>/.test(html), 'index.html이 scoring.js를 불러옴 (채점 코드 단일화)');
 
-// ---- 최악 경로 / 워크드 예제 / 결정성 ----
-const r1 = recommend({ ...base, Q1:1,Q2:1,Q3:1,Q4:1,Q5:1,Q6:1 }, jobs);
-console.log('최악 경로 → pool:', r1.pool_size, '| 출력:', r1.count, '|', r1.results.map(x=>x.no+' '+x.name).join(', '));
-const persona = { ...base, Q1:3,Q2:3,Q3:3,Q4:2,Q5:1,Q6:2, Q7:2,Q8:2,Q9:1,Q10:1, Q11:[2,5], Q12:1, Q13:2, Q14:{has:false}, Q15:1,Q16:1,Q17:2,Q18:1,Q19:2 };
-const r2 = recommend(persona, jobs);
-console.log('워크드 예제 → pool:', r2.pool_size, '| 출력:', r2.count);
-r2.results.forEach((x,i)=>console.log(`  ${i+1}위 [${x.score}점] ${x.no} ${x.name} — ${x.reasons.join(' / ')}`));
-console.log('결정성(같은 답→같은 결과):', JSON.stringify(r2)===JSON.stringify(recommend(persona,jobs))?'통과':'실패');
+// 8) 예시 결과
+const ex = { Q1: [10, 4], Q2: [14], Q3: 1, Q4: 2, Q5: 1, Q6: 5, Q7: 1, Q8: [5, 9], Q9: [2, 1], Q10: 2, Q11: 2,
+  Q12: { has: true, name: '요양보호사', typeBonus: S.licenseTypeBonus('요양보호사') }, Q13: 3, Q14: 1,
+  Q15: 2, Q16: 2, Q17: 2, Q18: 2, Q19: 1, Q20: 2, Q21: 2, Q22: 2, Q23: 2 };
+const er = recommend(ex, jobs);
+console.log(`\n예시(돌봄·교육 희망, 요양보호사 자격, 동네·주5~15h·가벼운 활동) → ${er.count}개`);
+er.results.forEach((x, i) => console.log(`  ${i + 1}위 [${x.score}점] ${x.no} ${x.name}${x.conditional ? ' (준비 필요: ' + x.conditional.join('·') + ')' : ''} — ${x.reasons.join(' / ')}`));
+
+console.log(failed ? `\n실패 ${failed}건` : '\n모든 검증 통과');
+process.exitCode = failed ? 1 : 0;

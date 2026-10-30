@@ -1,47 +1,113 @@
 // ============================================================
-// 백잡사전 N잡 진단 — 채점 엔진 참조 구현 v1.7 (scoring.js)
-// 명세: baekjap-diagnosis-logic 문서와 1:1 대응
-// 사용: const { recommend } = require('./scoring.js');
-//       const jobs = require('./jobs.json');
-//       const result = recommend(answers, jobs);
+// 백잡사전 N잡 진단 — 채점 엔진 v2.0 (scoring.js)
+// 질문 구조: 1부 하고 싶은 일(Q1~Q7) · 2부 잘하는 것(Q8~Q14) · 3부 지금 상황(Q15~Q23)
+// 사용(Node):   const { recommend } = require('./scoring.js');
+//               const result = recommend(answers, require('./jobs.json'));
+// 사용(브라우저): <script src="scoring.js"></script> 후 recommend(answers, JOBS)
 // ============================================================
 
-// ---- 상수 테이블 (명세 §4) ----
-const PLACE_SETS = { 1: ['재택', '온라인'], 2: ['재택', '온라인', '방문', '점포'], 3: null };
-const TIME_ORDER = ['주5h 미만', '주5~15h', '주15~30h', '주30h 이상'];
-const COST_ORDER = ['₩', '₩₩', '₩₩₩', '₩₩₩₩', '₩₩₩₩₩'];
-const LIC_SETS   = { 1: ['불필요'], 2: ['불필요', '교육이수'], 3: null };
+// ---- 조정 포인트: 가중치 ----
+const W = {
+  WANT: 6,          // Q1 하고 싶은 분야 직결
+  STRENGTH: 2.5,    // Q9 잘한다는 말을 듣는 것
+  EXP: 2,           // Q8 오래 해온 일
+  LICENSE: 3,       // Q12 보유 자격 (유형 일치 / 잡명 직접 일치 각각)
+  TARGET: 2,        // Q3 함께하고 싶은 대상
+  ATTRACT: 0.25,    // 매력도 지수 (응답과 무관한 점수 — 작게 유지)
+  POPULAR: 0.3,     // 시장 선호도 인기 잡
+  COND_PENALTY: 1.5 // 조정 가능 조건 1개 부족당 감점
+};
 
-const EXP_MAP = { 1: [1, 2, 3], 2: [9, 10], 3: [4, 5], 4: [7], 5: [8], 6: [6, 1] };
-const TYPE_FACE_ON = [3, 4, 5, 8, 9];   // 대면 친화
-const TYPE_SOLO    = [1, 6, 7];         // 비대면 친화
-const TYPE_MANUAL  = [7, 8, 9];         // 매뉴얼형
-const TYPE_AUTON   = [1, 2, 6, 10];     // 자율형
-const TYPE_NUMERIC = [1, 2, 10];        // 숫자 성과형
-const TYPE_CARE    = [4, 5, 8];         // 돌봄·보람형
-const IMAGE_RISK   = ['022', '023', '090']; // 이미지 리스크 잡 (운세·펫택시 계열) — 설정값, 조사 진행 시 수정
+// ---- 조정 포인트: 출력 규칙 ----
+const MAX_RESULTS = 6;
+const MIN_RESULTS = 2;
+const MAX_PER_TYPE = 3;      // 같은 유형 최대 개수
+const MAX_SIMPLE = 1;        // 단순 과업형 최대 개수
+const WANT_READY_MAX = 3;    // 하고 싶은 분야 중 바로 가능한 잡 최대 개수
+const WANT_MIN = 2;          // 하고 싶은 분야 잡 최소 보장 개수 (부족하면 '준비하면 가능' 잡으로 채움)
+const MAX_SOFT_FAILS = 2;    // 조정 가능 조건이 이 개수까지 부족하면 '준비하면 가능'으로 보여줌
+const MAX_CONDITIONAL = 3;   // 결과 중 '준비하면 가능' 잡 최대 개수 (안전망 제외)
 
-// [5층] 활동 여건 잡 집합 (잡명 기반 파생 속성 — v0.3 신설 축)
+// ---- Q1·Q2 분야 → 잡 (잡 100개 모두 1개 이상 분야에 연결) ----
+const FIELD_NAMES = { 1: '컴퓨터·스마트폰', 2: '창업·경영 자문', 3: '상담', 4: '교육·강의', 5: '운동·건강 지도',
+  6: '문화·취미 안내', 7: '글·영상·작품', 8: '집수리·시설 점검', 9: '나무·농사·자연', 10: '돌봄',
+  11: '반려동물', 12: '운전·배달·이동', 13: '살림·정리·행사', 14: '가게·공간 운영' };
+const FIELD_JOBS = {
+  1:  ['001', '002', '003', '004', '005', '006', '007', '008'],
+  2:  ['009', '010', '011', '012', '013', '014', '015', '016', '017'],
+  3:  ['018', '019', '020', '021', '022', '023', '024'],
+  4:  ['025', '026', '027', '028', '029', '030', '031', '032', '033'],
+  5:  ['036', '038', '039', '040', '046'],
+  6:  ['034', '035', '037', '041', '042', '043', '044', '045'],
+  7:  ['047', '048', '049', '050', '051', '052', '053', '054', '055'],
+  8:  ['056', '057', '058', '059', '060', '061', '062', '063', '064', '065', '069'],
+  9:  ['034', '043', '066', '067', '068'],
+  10: ['070', '071', '072', '073', '074', '075', '076'],
+  11: ['081', '082', '083', '084', '090'],
+  12: ['077', '078', '085', '086', '087', '088', '089'],
+  13: ['079', '080', '091', '092', '093'],
+  14: ['094', '095', '096', '097', '098', '099', '100'],
+};
+
+// ---- 잡 집합 (잡명 기반 파생 속성) ----
 const OUTDOOR_JOBS = ['034', '038', '042', '043', '066', '067', '068', '081']; // 야외 활동형
 const VEHICLE_JOBS = ['045', '077', '085', '087', '088', '090'];               // 차량 활용형
+const CAR_REQUIRED = ['088', '090'];                                           // 자기 차가 꼭 필요한 잡 (차 없음 → 제외)
 const SENIOR_JOBS  = ['027', '028', '033', '040', '045', '054', '055', '071', '073']; // 시니어 대상
 const KIDS_JOBS    = ['029', '032', '041', '075', '078'];                      // 아동·청소년 대상
+const GUEST_JOBS   = ['030', '042', '044', '045', '077', '096', '100'];        // 외국인·여행객 대상
+const BIZ_JOBS     = ['001', '002', '003', '007'];                             // 사장님·회사 대상 (+ 2유형 전체)
 const INST_JOBS    = ['012','017','018','019','021','031','042','043','044','061','062','063','071','073','076','092','093']; // 기관·단체 통로형
-const TRAVEL_JOBS  = ['045', '077', '096', '100'];                    // 여행·숙박·손님 맞이형
-const CAPITAL_JOBS = ['047', '094', '095', '096', '097', '098', '099']; // 자본·시설 투자형 (하향군)
-const SIMPLE_JOBS  = ['005', '006', '008', '051', '095']; // 저진입 단순 과업·재판매형 (v0.5 하향군)
-const PRO_JOBS     = ['025','020','009','011','013','014','010','047','030','026','096','019','018','024','055','056','080']; // 전문성·경력 연결형 (v0.5 상향군)
-const PET_JOBS     = ['081', '082', '083', '084', '090'];             // 반려동물 돌봄형
+const PET_JOBS     = ['081', '082', '083', '084', '090'];                      // 반려동물 돌봄형
+const CAPITAL_JOBS = ['047', '094', '095', '096', '097', '098', '099'];        // 자본·시설 투자형 (사업 의사 없으면 하향)
+const SIMPLE_JOBS  = ['005', '006', '008', '051', '095'];                      // 저진입 단순 과업·재판매형
+const PRO_JOBS     = ['025','020','009','011','013','014','010','047','030','026','096','019','018','024','055','056','080']; // 전문성·경력 연결형
+const POPULAR_JOBS = ['021', '037', '043', '056', '061', '100'];               // 시장 선호도 인기 잡
 
-// [v0.7] 시장 선호도 상위 잡 — 사용자 지정: 조사 시트 판정이 못 잡은 "사람들이 찾고 좋아하는" 잡 6종.
-// 어떤 응답에서도 상시 +1.0 (매력도 프리미엄과 별개의 시장 선호도 프리미엄)
-const POPULAR_JOBS = ['021', '037', '043', '056', '061', '100'];
-// [v0.7] Q28 선호 분야 → 온램프 대상 잡 (선택한 분야와 직결되는 잡에 +2.5)
-const Q28_PREF_MAP = { 1: ['037'], 2: ['021'], 3: ['043'], 4: ['056', '061'], 5: ['100'] }; // ⑥ 없음 = 보정 없음
+const TYPE_FACE_ON = [3, 4, 5, 8, 9];   // 대면 친화
+const TYPE_SOLO    = [1, 6, 7];         // 비대면 친화
 
-const Q8_BANDS = { 1: [0, 30], 2: [30, 100], 3: [100, 300], 4: [300, Infinity] };
+// ---- Q3 함께하고 싶은 대상 ----
+const TARGET_NAMES = { 1: '또래·어르신', 2: '아이·청소년', 3: '외국인·여행객', 4: '사장님·회사' };
+function targetHit(q3, j) {
+  if (q3 === 1) return SENIOR_JOBS.includes(j.no);
+  if (q3 === 2) return KIDS_JOBS.includes(j.no);
+  if (q3 === 3) return GUEST_JOBS.includes(j.no);
+  if (q3 === 4) return j.type_no === 2 || BIZ_JOBS.includes(j.no);
+  return false;
+}
 
-// Q14 자격명 → 유형 매핑 사전 (확정 과제 §7-6: 운영 중 계속 확장)
+// ---- Q8 오래 해온 일 → 유형 (8 운전은 차량 활용 잡) ----
+const EXP_NAMES = { 1: '서류·사무·관리', 2: '영업·판매·응대', 3: '가르치고 설명하기', 4: '기술·현장·수리', 5: '돌봄·간호·복지',
+  6: '글·그림·사진·영상', 7: '경영·회계·기획', 8: '운전·운송·물류', 9: '살림·육아' };
+const EXP_MAP = { 1: [1, 2, 3], 2: [9, 10], 3: [4, 5], 4: [7], 5: [8], 6: [6, 1], 7: [2, 10], 9: [8, 9] };
+function expHit(e, j) {
+  if (e === 8) return VEHICLE_JOBS.includes(j.no);
+  return (EXP_MAP[e] || []).includes(j.type_no);
+}
+
+// ---- Q9 잘한다는 말을 듣는 것 → 유형(t)·잡(j) ----
+const STRENGTH_NAMES = { 1: '쉽게 설명하기', 2: '잘 들어주기', 3: '손재주', 4: '꼼꼼함', 5: '글·사진', 6: '친화력',
+  7: '운전', 8: '동물 다루기', 9: '살림·정리', 10: '돈·숫자 관리', 11: '운동·체력' };
+const STRENGTH_MAP = {
+  1:  { t: [4, 5] },
+  2:  { t: [3, 8] },
+  3:  { t: [7], j: ['035', '051', '082'] },
+  4:  { j: ['003', '005', '008', '015', '016', '017', '062', '091', '092'] },
+  5:  { t: [6], j: ['001', '002', '007'] },
+  6:  { j: ['036', '042', '044', '045', '046', '054', '077', '093', '096', '100'] },
+  7:  { j: VEHICLE_JOBS },
+  8:  { j: PET_JOBS },
+  9:  { j: ['037', '071', '074', '075', '079', '080'] },
+  10: { t: [2, 10] },
+  11: { j: ['036', '038', '039', '040', '043', '066', '067', '081', '086', '089'] },
+};
+function strengthHit(k, j) {
+  const m = STRENGTH_MAP[k];
+  return !!m && ((m.t || []).includes(j.type_no) || (m.j || []).includes(j.no));
+}
+
+// Q12 자격명 → 유형 매핑 사전 (운영 중 계속 확장)
 const LICENSE_TYPE_MAP = [
   ['요양', 8], ['간병', 8], ['산후', 8], ['도우미', 8], ['복지', 8], ['사회복지', 8],
   ['강사', 4], ['교육', 4], ['한국어', 4], ['체험', 4],
@@ -52,277 +118,188 @@ const LICENSE_TYPE_MAP = [
   ['장례', 9], ['택시', 9], ['탁송', 9],
   ['체육', 5], ['수목', 7], ['조경', 7], ['식물', 7], ['병해충', 7], ['농장관리', 7],
 ];
-
-// ---- 1층: Knockout 필터 (명세 §4.1) ----
-function layer1Pass(a, j) {
-  let fails = 0; const why = [];
-  const ps = PLACE_SETS[a.Q1];
-  if (ps && !ps.includes(j.place)) { fails++; why.push('활동 반경'); }
-  if (a.Q2 < 4 && TIME_ORDER.indexOf(j.time) > a.Q2 - 1) { fails++; why.push('주간 시간'); }
-  if (a.Q3 === 1 && j.flex === '고정') { fails++; why.push('시간 통제'); }
-  const ls = LIC_SETS[a.Q4];
-  if (ls && !ls.includes(j.license)) { fails++; why.push('자격·교육'); }
-  if (a.Q5 < 3 && COST_ORDER.indexOf(j.cost) > a.Q5 - 1) { fails++; why.push('시작 비용'); }
-  if (a.Q6 === 1 && j.stamina !== '하') { fails++; why.push('체력'); }
-  if (a.Q6 === 2 && j.stamina === '상') { fails++; why.push('체력'); }
-  return { ok: fails === 0, fails, why };
+function licenseHit(lic, j) {
+  if (!lic || !lic.has) return false;
+  const direct = !!lic.name && LICENSE_TYPE_MAP.some(([k]) => lic.name.includes(k) && (j.name.includes(k) || (j.concept || '').includes(k)));
+  return direct || (lic.typeBonus || []).includes(j.type_no);
 }
 
-// ---- 채점 (명세 §4.2~4.4) ----
-function scoreJob(a, j, typeScore) {
-  let s = typeScore.get(j.type_no) || 0;
-  const reasons = [];
+const inFields = (fields, j) => (fields || []).some(f => (FIELD_JOBS[f] || []).includes(j.no));
+const wantedFieldOf = (a, j) => (a.Q1 || []).find(f => FIELD_JOBS[f].includes(j.no));
 
-  // [2층] Q7 첫 수입 시기
+// ---- 3부 조건 판정 ----
+// 절대 조건에 걸리면 null (결과에서 제외), 아니면 부족한 '조정 가능 조건' 목록(빈 배열 = 바로 가능)
+const TIME_ORDER = ['주5h 미만', '주5~15h', '주15~30h', '주30h 이상'];
+const COST_ORDER = ['₩', '₩₩', '₩₩₩', '₩₩₩₩', '₩₩₩₩₩'];
+const LIC_LEVEL  = { '불필요': 0, '교육이수': 1, '민간자격': 2, '국가자격': 2 };
+const STAMINA_LEVEL = { '하': 0, '중': 1, '상': 2 };
+function conditionCheck(a, j) {
+  // 절대 조건
+  if (inFields(a.Q2, j) && !inFields(a.Q1, j)) return null;               // 하기 싫은 분야
+  if (a.Q15 === 1 && !['재택', '온라인'].includes(j.place)) return null;  // 집에서만
+  if (a.Q18 === 1 && j.stamina === '상') return null;                    // 앉아서 하는 일만
+  if (a.Q23 === 2 && CAR_REQUIRED.includes(j.no)) return null;           // 차 없음
+  // 조정 가능 조건
+  const soft = [];
+  if (a.Q15 === 2 && j.place === '현장') soft.push('먼 곳까지 이동');
+  if (a.Q16 < 4 && TIME_ORDER.indexOf(j.time) > a.Q16 - 1) soft.push('일주일 시간 더 확보');
+  if (a.Q17 === 1 && j.flex === '고정') soft.push('정해진 근무시간');
+  if (LIC_LEVEL[j.license] > a.Q20 - 1) soft.push('자격·교육 준비');
+  if (a.Q19 < 3 && COST_ORDER.indexOf(j.cost) > a.Q19 - 1) soft.push('시작 비용');
+  if (STAMINA_LEVEL[j.stamina] > a.Q18 - 1) soft.push('체력');
+  return soft;
+}
+
+// ---- 채점 ----
+function scoreJob(a, j) {
+  let s = 0;
   const inc = j.income;
-  if (a.Q7 === 1) { s += (inc === '건별' || inc === '시간제') ? 0.75 : (inc === '자산형' ? -0.75 : 0); }
-  if (a.Q7 === 2) { s += inc === '월정액' ? 0.75 : (inc === '자산형' ? -0.25 : 0.25); }
-  if (a.Q7 === 3) { s += inc === '자산형' ? 0.75 : (inc === '월정액' ? 0.5 : 0.25); }
 
-  // [2층] Q8 월 목표 수입 (기대치 미달 = 순위 하향, 제외 아님) — 밴드 결측 잡은 poolQ8Mid 사용
-  if (j.income_min !== null && j.income_max !== null) {
-    const [umin, umax] = Q8_BANDS[a.Q8];
-    if (j.income_max < umin) s -= 1.0;
+  // [1부] 하고 싶은 일
+  if (inFields(a.Q1, j)) s += W.WANT;
+  if (targetHit(a.Q3, j)) s += W.TARGET;
+  if (a.Q3 === 6 && TYPE_SOLO.includes(j.type_no)) s += 1;             // 사람보다 일 자체
+  if (a.Q4 === 1 && ['재택', '온라인'].includes(j.place)) s += 1.5;
+  if (a.Q4 === 2 && ['점포', '방문'].includes(j.place)) s += 1.5;
+  if (a.Q4 === 3 && OUTDOOR_JOBS.includes(j.no)) s += 2;
+  if (a.Q4 === 4 && j.place === '현장') s += 1.5;
+  if (a.Q5 === 1 && TYPE_FACE_ON.includes(j.type_no)) s += 1;
+  if (a.Q5 === 3 && TYPE_SOLO.includes(j.type_no)) s += 1;
+  if (a.Q6 === 1 && (inc === '건별' || inc === '시간제')) s += 0.5;
+  if (a.Q6 === 2 && TYPE_FACE_ON.includes(j.type_no)) s += 1;
+  if (a.Q6 === 3 && PRO_JOBS.includes(j.no)) s += 1;
+  if (a.Q6 === 4 && (inc === '자산형' || j.type_no === 10)) s += 1;
+  if (a.Q6 === 5 && [3, 4, 8].includes(j.type_no)) s += 1;
+  const JOY = { 1: [3, 8], 2: [1, 2, 10], 4: [6, 7], 5: [5] };           // Q7 가장 기쁜 순간 → 유형
+  if ((JOY[a.Q7] || []).includes(j.type_no)) s += 1;
+  if (a.Q7 === 3 && PRO_JOBS.includes(j.no)) s += 1;
+
+  // [2부] 잘하는 것
+  for (const e of a.Q8 || []) if (expHit(e, j)) s += W.EXP;
+  for (const k of a.Q9 || []) if (strengthHit(k, j)) s += W.STRENGTH;
+  if (a.Q10 === 3 && j.type_no === 1) s += 0.5;
+  if (a.Q10 === 1 && j.type_no === 1) s -= 1;
+  if (a.Q11 === 1 && [4, 5].includes(j.type_no)) s += 1;
+  if (a.Q12 && a.Q12.has) {
+    if (a.Q12.name && LICENSE_TYPE_MAP.some(([k]) => a.Q12.name.includes(k) && (j.name.includes(k) || (j.concept || '').includes(k)))) s += W.LICENSE;
+    if ((a.Q12.typeBonus || []).includes(j.type_no)) s += W.LICENSE;
   }
+  if (a.Q13 === 1 && SIMPLE_JOBS.includes(j.no)) s += 1;
+  if (a.Q13 === 2) { if (SIMPLE_JOBS.includes(j.no)) s -= 2; if (PRO_JOBS.includes(j.no)) s += 1.5; }
+  if (a.Q14 === 1 && INST_JOBS.includes(j.no)) s += 1;
+  if (a.Q14 === 3 && ['재택', '온라인'].includes(j.place)) s += 0.5;
 
-  // [2층] Q9 수입 방식 취향
-  if (a.Q9 === 1) { s += (inc === '건별' || inc === '시간제') ? 0.5 : (inc === '자산형' ? -0.5 : 0); }
-  if (a.Q9 === 2) { s += (inc === '월정액' || inc === '자산형') ? 0.5 : 0; }
+  // [3부] 상황 (수입·차량)
+  if (a.Q21 === 1 && (inc === '건별' || inc === '시간제')) s += 0.5;
+  if (a.Q21 === 3 && inc === '자산형') s += 0.5;
+  const minIncome = { 1: 0, 2: 30, 3: 100, 4: 300 }[a.Q22] || 0;          // 목표보다 수입이 낮으면 순위 하향 (제외 아님)
+  if (j.income_max !== null && j.income_max !== undefined && j.income_max < minIncome) s -= 1;
+  if (a.Q23 === 1 && VEHICLE_JOBS.includes(j.no)) s += 1.5;
+  if (a.Q6 !== 4 && CAPITAL_JOBS.includes(j.no)) s -= 1.5;                // 사업 의사가 없으면 자본형 하향
 
-  // [2층] Q10 목적 유형 보너스
-  if (a.Q10 === 1 && (inc === '건별' || inc === '시간제')) s += 0.5;
-  if (a.Q10 === 2 && TYPE_FACE_ON.includes(j.type_no)) s += 1.0;
-  if (a.Q10 === 3 && [1, 2, 3, 6].includes(j.type_no)) s += 1.0;
-  if (a.Q10 === 4) {
-    if (inc === '자산형') s += 0.75;
-    if (inc === '월정액') s += 0.25;
-    if (j.type_no === 10) s += 0.75;
-    if (j.cost === '₩₩₩' || j.cost === '₩₩₩₩' || j.cost === '₩₩₩₩₩') s += 0.25;
-  }
-
-  // [3층] Q12 디지털 수준
-  if (a.Q12 === 3) { if (j.type_no === 1) s += 0.5; if (j.difficulty === '★★★★' || j.difficulty === '★★★★★') s += 0.5; }
-
-  // [3층] Q14 보유 자격 직결 — 유형 일치 +3, 잡명 직접 일치 +3
-  if (a.Q14 && a.Q14.has && a.Q14.name) {
-    const kw = LICENSE_TYPE_MAP.find(([k]) => a.Q14.name.includes(k) && (j.name.includes(k) || (j.concept || '').includes(k)));
-    if (kw) s += 3;
-    if (a.Q14.typeBonus && a.Q14.typeBonus.includes(j.type_no)) s += 3;
-  }
-
-  // [하향 레버 v0.4] 자본형: 사업 의사가 없는 응답자(Q10≠④)에게 시설·재고 투자 잡 하향
-  if (a.Q10 !== 4 && CAPITAL_JOBS.includes(j.no)) s -= 1.5;
-  // [하향 레버 v0.4] 육체형: 몸을 많이 쓰는 잡 전반 소폭 하향 (Q6=③ 응답자에게도 순위상 뒤로)
-  if (j.stamina === '상') s -= 0.75;
-
-  // [4층] 보정 ±1~2
-  if (a.Q15 === 1 && TYPE_FACE_ON.includes(j.type_no)) s += 1;
-  if (a.Q15 === 3 && TYPE_SOLO.includes(j.type_no)) s += 1;
-  if (a.Q16 === 1 && TYPE_MANUAL.includes(j.type_no)) s += 1;
-  if (a.Q16 === 3 && TYPE_AUTON.includes(j.type_no)) s += 1;
-  if (a.Q17 === 1 && TYPE_NUMERIC.includes(j.type_no)) s += 1;
-  if (a.Q17 === 2 && TYPE_CARE.includes(j.type_no)) s += 1;
-  if (a.Q18 === 1 && IMAGE_RISK.includes(j.no)) s -= 1.5;
-  if (a.Q18 === 2 && IMAGE_RISK.includes(j.no)) s += 1;
-  if (a.Q19 === 1) { if ([2, 3, 4].includes(j.type_no)) s += 1; if (j.difficulty === '★★★★' || j.difficulty === '★★★★★') s += 0.5; }
-  if (a.Q19 === 2) { if (j.type_no === 7 || j.type_no === 9) s += 0.5; if (j.difficulty === '★' || j.difficulty === '★★') s += 0.5; }
-
-  // [5층] 활동 여건 (v0.3 신설) — 응답이 잡의 전제와 맞을 때만 온램프
-  if (a.Q20 === 2 && OUTDOOR_JOBS.includes(j.no)) s += 2.5;   // 야외에서 활동적으로
-  if (a.Q21 === 1 && VEHICLE_JOBS.includes(j.no)) s += 2.5;   // 차량 활용 가능
-  if (a.Q22 === 1 && SENIOR_JOBS.includes(j.no)) s += 2.5;    // 시니어 대상 선호
-  if (a.Q22 === 2 && KIDS_JOBS.includes(j.no)) s += 2.5;      // 아동·청소년 대상 선호
-  if (a.Q24 === 1 && INST_JOBS.includes(j.no)) s += 2.5;      // 기관 통로 선호
-  if (a.Q24 === 2 && INST_JOBS.includes(j.no)) s -= 1.0;      // 직접 알리기 선호 시 소폭 하향
-
-  // [5층] Q25 일의 중심 (v0.4) — 상향군 온램프
-  if (a.Q25 === 1 && [2, 3, 4].includes(j.type_no)) s += 2.5; // 가르치고 조언하기 → 컨설턴트·강사·상담·심사원
-  if (a.Q25 === 2 && TRAVEL_JOBS.includes(j.no)) s += 2.5;    // 여행·숙박·손님 맞이 → 여행·민박
-  if (a.Q25 === 3 && PET_JOBS.includes(j.no)) s += 2.5;       // 동물 돌보기 → 펫
-  if (a.Q25 === 4 && [1, 6].includes(j.type_no)) s += 1.0;    // 화면·작업 집중 → 디지털·창작
-  if (a.Q4 === 3 && j.license === '국가자격') s += 1.0;       // 자격 준비 의향 → 국가자격 잡 (직업상담사·ISO 심사원 등)
-
-  // [5층] Q28 선호 분야 (v0.7) — 끌리는 분야를 고르면 직결 잡에 온램프
-  const pref = Q28_PREF_MAP[a.Q28]; // 선호 분야 직결 시 +3.5 (v0.7)
-  if (pref && pref.includes(j.no)) s += 4.5;
-
-  // [6층] 매력도 프리미엄 (v0.6) — 수익성·이미지·선호도 조사 기반, Q27 강도 스위치
-  const ATTR_W = { 1: 0.9, 2: 0.2, 3: 0.55 }[a.Q27] ?? 0.55;
-  const effAttract = POPULAR_JOBS.includes(j.no) ? Math.max(j.attract || 0, 4.5) : (j.attract || 0); // v0.7 시장 선호도 보정: 인기 6종은 매력도 하한 4.5
-  s += ATTR_W * effAttract;
-
-  // [6층] 시장 선호도 프리미엄 (v0.7) — 사용자 지정 인기 잡 6종 상시 가산
-  if (POPULAR_JOBS.includes(j.no)) s += 1.0;
-
-  // [5층] Q26 일의 깊이 (v0.5) — 전문성 선호가 기본값이 되도록 설계
-  if (a.Q26 === 1 && SIMPLE_JOBS.includes(j.no)) s += 1.0;    // 빨리 시작 선호 → 단순 과업형 가점
-  if (a.Q26 === 2) {
-    if (SIMPLE_JOBS.includes(j.no)) s -= 3.0;                 // 전문성 선호 → 단순 과업형 강하향
-    if (PRO_JOBS.includes(j.no)) s += 2.5;                    // 전문성 선호 → 전문형 강상향
-  }
-
+  // 잡 자체 점수 (응답과 무관 — 동점 정리 수준으로만)
+  s += W.ATTRACT * (j.attract || 0);
+  if (POPULAR_JOBS.includes(j.no)) s += W.POPULAR;
   return s;
 }
 
-// 근거 문장 생성 (명세 §6)
-function buildReasons(a, j, typeScore) {
+// ---- 추천 근거 문장 (응답 기준) ----
+function buildReasons(a, j, soft) {
   const r = [];
-  const ps = PLACE_SETS[a.Q1];
-  if (!ps || ps.includes(j.place)) {
-    const label = { 1: '집에서만', 2: '동네까지는 나가기', 3: '이동·현장 포함' }[a.Q1];
-    r.push(`${label} 조건이 맞아요`);
-  }
-  if (a.Q2 === 4 || TIME_ORDER.indexOf(j.time) <= a.Q2 - 1) r.push(`주간 시간(${j.time}) 안에서 가능해요`);
-  if (typeScore.get(j.type_no) > 0) r.push('오래 해온 경험과 연결되는 분야예요');
-  if (a.Q14 && a.Q14.has && a.Q14.typeBonus && a.Q14.typeBonus.includes(j.type_no)) r.push('가진 자격을 바로 쓸 수 있어요');
-  if (j.income_min !== null && Q8_BANDS[a.Q8] && j.income_max >= Q8_BANDS[a.Q8][0]) r.push('목표 수입 범위에 들어와요');
-  if (POPULAR_JOBS.includes(j.no)) r.push('많은 사람들이 관심을 갖는 인기 분야예요');
-  return r;
+  const f = wantedFieldOf(a, j);
+  if (f) r.push(`하고 싶다고 고른 '${FIELD_NAMES[f]}' 분야예요`);
+  const k = (a.Q9 || []).find(x => strengthHit(x, j));
+  if (k) r.push(`'${STRENGTH_NAMES[k]}' 강점을 살릴 수 있어요`);
+  const e = (a.Q8 || []).find(x => expHit(x, j));
+  if (e) r.push(`오래 해온 '${EXP_NAMES[e]}' 경험과 이어져요`);
+  if (licenseHit(a.Q12, j)) r.push(`가진 자격(${a.Q12.name || '보유 자격'})을 살릴 수 있어요`);
+  if (targetHit(a.Q3, j)) r.push(`원하신 대상(${TARGET_NAMES[a.Q3]})과 함께하는 일이에요`);
+  const minIncome = { 1: 0, 2: 30, 3: 100, 4: 300 }[a.Q22] || 0;
+  if (minIncome > 0 && j.income_max && j.income_max >= minIncome) r.push('목표 수입 범위에 들어와요');
+  const top = r.slice(0, 3);                       // 응답과 직결된 근거 최대 3개
+  if (!soft.length) top.push('지금 조건(시간·비용·체력·자격)으로 바로 시작할 수 있어요');
+  return top;
 }
 
 // ---- 메인: recommend(answers, jobs) ----
 function recommend(a, jobs) {
-  // 1층 필터 (+실패 사유 보존: R6에서 사용)
-  let pool = [], excluded = [];
-  const evaluated = new Map();
-  for (const j of jobs) {
-    const v = layer1Pass(a, j);
-    evaluated.set(j.no, v);
-    (v.ok ? pool : excluded).push(j);
-  }
-  const condMap = new Map();
-
-  // R2 안전망: 풀 0~1개면 제약을 한 계단씩 완화 (비용→자격→시간→체력→장소 순)
-  const relaxed = [];
-  let guard = 0;
-  while (pool.length < 2 && guard < 12) {
-    guard++;
-    const step = relaxed.length;
-    if (step % 5 === 0 && a.Q5 < 3) { a = { ...a, Q5: a.Q5 + 1 }; relaxed.push('시작비용 완화'); }
-    else if (step % 5 === 1 && a.Q4 < 3) { a = { ...a, Q4: a.Q4 + 1 }; relaxed.push('자격 조건 완화'); }
-    else if (step % 5 === 2 && a.Q2 < 4) { a = { ...a, Q2: a.Q2 + 1 }; relaxed.push('시간 완화'); }
-    else if (step % 5 === 3 && a.Q6 < 3) { a = { ...a, Q6: a.Q6 + 1 }; relaxed.push('체력 완화'); }
-    else if (step % 5 === 4 && a.Q1 < 3) { a = { ...a, Q1: a.Q1 + 1 }; relaxed.push('활동 반경 완화'); }
-    pool = jobs.filter(j => layer1Pass(a, j).ok);
-  }
-
-  // 3층 유형 점수 계산
-  const typeScore = new Map();
-  const bump = (t, v) => typeScore.set(t, (typeScore.get(t) || 0) + v);
-  (a.Q11 || []).forEach(e => (EXP_MAP[e] || []).forEach(t => bump(t, 2)));
-  if (a.Q13 === 1) { bump(4, 1.5); bump(5, 1.5); }
-  if (a.Q13 === 2) { bump(4, 0.5); bump(5, 0.5); }
-
-  // R6 조건부 온램프 (v0.3): Q23=① 도전 수용 시, 1층 조건을 딱 하나만 어긴 잡 중 친화도 높은 것을 최대 3개 편입
-  if (a.Q23 === 1) {
-    const prefSet = Q28_PREF_MAP[a.Q28] || [];
-    const affinity = j => (typeScore.get(j.type_no) || 0)
-      + (a.Q20 === 2 && OUTDOOR_JOBS.includes(j.no) ? 2.5 : 0)
-      + (a.Q21 === 1 && VEHICLE_JOBS.includes(j.no) ? 2.5 : 0)
-      + (a.Q22 === 1 && SENIOR_JOBS.includes(j.no) ? 2.5 : 0)
-      + (a.Q22 === 2 && KIDS_JOBS.includes(j.no) ? 2.5 : 0)
-      + (a.Q24 === 1 && INST_JOBS.includes(j.no) ? 2.5 : 0)
-      + (a.Q25 === 1 && [2, 3, 4].includes(j.type_no) ? 2.5 : 0)
-      + (a.Q25 === 2 && TRAVEL_JOBS.includes(j.no) ? 2.5 : 0)
-      + (a.Q25 === 3 && PET_JOBS.includes(j.no) ? 2.5 : 0)
-      + (prefSet.includes(j.no) ? 4.5 : 0)
-      + (a.Q4 === 3 && j.license === '국가자격' ? 1.0 : 0)
-      + (a.Q26 === 2 && PRO_JOBS.includes(j.no) ? 1.5 : 0)
-      + (a.Q14 && a.Q14.has && a.Q14.name && LICENSE_TYPE_MAP.find(([k]) => a.Q14.name.includes(k) && (j.name.includes(k) || (j.concept || '').includes(k))) ? 3 : 0)
-      + (a.Q14 && a.Q14.typeBonus && a.Q14.typeBonus.includes(j.type_no) ? 3 : 0);
-    const near = jobs.filter(j => { const v = layer1Pass(a, j); return !v.ok && v.fails === 1; });
-    const admitted = near.filter(j => affinity(j) >= 2.5)
-      .sort((x, y) => affinity(y) - affinity(x) || parseInt(x.no) - parseInt(y.no))
-      .slice(0, 3);
-    for (const j of admitted) condMap.set(j.no, evaluated.get(j.no).why);
-  }
-
-  // 2·4층 개별 채점
-  const scored = pool.map(j => {
-    const s = scoreJob(a, j, typeScore);
-    const reasons = buildReasons(a, j, typeScore);
-    const condWhy = condMap.get(j.no) || null;
-    if (condWhy) reasons.push(`단, ${condWhy.join('·')} 조건을 하나 채우면 시작할 수 있어요`);
-    return { job: j, score: Math.round(s * 100) / 100, reasons, conditional: condWhy };
-  });
-
   // 동점 로테이션 해시: 응답 조합 + 잡번호 → 0~999 (같은 답이면 항상 같은 값 = 결정적)
   const key = JSON.stringify(a);
   const hash = no => { let h = 0; const s = key + no; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 1000; return h; };
+  const jitter = no => ((hash(no) % 9) - 4) * 0.15;   // ±0.6, 결정적
 
-  // R5 노출 지터: 응답 해시 기반 ±0.6 (같은 답이면 항상 같은 값 — 결정적)
-  const jitter = no => (((hash(no) % 9) - 4) * 0.15);
-
-  // 정렬: (점수+지터) desc → 유형 경험 점수 desc → 해시 로테이션 asc → Job No. asc
-  scored.sort((x, y) =>
-    (y.score + jitter(y.job.no)) - (x.score + jitter(x.job.no)) ||
-    (typeScore.get(y.job.type_no) || 0) - (typeScore.get(x.job.type_no) || 0) ||
-    hash(x.job.no) - hash(y.job.no) ||
-    (parseInt(x.job.no) - parseInt(y.job.no)));
-
-  // R1: 풀 2~5개면 전부, 6개 이상이면 상위 6개
-  let out = scored.slice(0, Math.min(6, scored.length));
-
-  // R3: 같은 유형 최대 3개 — 초과분을 다음 순위 잡으로 교체 (v0.3: 2→3, 중장년 적합 잡의 유형 내 기회 확대)
-  const countByType = {};
-  let simpleUsed = false;
-  const kept = [];
-  for (const it of scored) {
-    const c = countByType[it.job.type_no] || 0;
-    if (c >= 3) continue;
-    if (SIMPLE_JOBS.includes(it.job.no)) { if (simpleUsed) continue; simpleUsed = true; }
-    countByType[it.job.type_no] = c + 1;
-    kept.push(it);
-    if (kept.length >= 6) break;
+  const evaluated = [];
+  for (const j of jobs) {
+    const soft = conditionCheck(a, j);
+    if (soft === null) continue;
+    evaluated.push({ job: j, soft, score: scoreJob(a, j) - W.COND_PENALTY * soft.length, order: jitter(j.no) });
   }
-  out = kept;
+  const byRank = (x, y) => (y.score + y.order) - (x.score + x.order) || hash(x.job.no) - hash(y.job.no) || parseInt(x.job.no) - parseInt(y.job.no);
+  const ready = evaluated.filter(e => e.soft.length === 0).sort(byRank);
+  const near  = evaluated.filter(e => e.soft.length > 0 && e.soft.length <= MAX_SOFT_FAILS).sort(byRank);
 
-  // R4: 풀에 있는 각 유형의 최고 점수 잡은 반드시 포함 — 빠졌으면 중복 유형 2번째와 교체
-  const outTypes = new Set(out.map(it => it.job.type_no));
-  for (const t of new Set(pool.map(j => j.type_no))) {
-    if (outTypes.has(t)) continue;
-    const top = scored.find(it => it.job.type_no === t);
-    if (!top) continue;
-    const dupIdx = out.findIndex((it, i) => (countByType[it.job.type_no] === 2) && out.findIndex(o => o === it) === i && out.filter(o => o.job.type_no === it.job.type_no).length === 2 && it !== out.find(o => o.job.type_no === it.job.type_no));
-    const swapIdx = dupIdx >= 0 ? dupIdx : out.length - 1;
-    if (out.length >= 6) out[swapIdx] = top; else out.push(top);
-    outTypes.add(t);
-  }
+  const out = [], countByType = {};
+  let simpleUsed = 0;
+  const add = e => {
+    if (out.includes(e)) return false;
+    if ((countByType[e.job.type_no] || 0) >= MAX_PER_TYPE) return false;
+    if (SIMPLE_JOBS.includes(e.job.no)) { if (simpleUsed >= MAX_SIMPLE) return false; simpleUsed++; }
+    countByType[e.job.type_no] = (countByType[e.job.type_no] || 0) + 1;
+    out.push(e);
+    return true;
+  };
 
-  // R8: 전문형(PRO_JOBS) 최소 3개 보장 — 부족하면 비전문형 최하위와 교체 (v0.5)
-  const proIn = out.filter(it => PRO_JOBS.includes(it.job.no)).length;
-  if (proIn < 3) {
-    const outNos = new Set(out.map(it => it.job.no));
-    const proPool = scored.filter(it => PRO_JOBS.includes(it.job.no) && !outNos.has(it.job.no));
-    for (const pro of proPool) {
-      if (out.filter(it => PRO_JOBS.includes(it.job.no)).length >= 3) break;
-      if (out.length >= 6) {
-        let idx = -1;
-        for (let i = out.length - 1; i >= 0; i--) {
-          if (!PRO_JOBS.includes(out[i].job.no) && !out[i].job.__r4) { idx = i; break; }
-        }
-        if (idx === -1) idx = out.length - 1;
-        out[idx] = pro;
-      } else out.push(pro);
-    }
+  // 1) 하고 싶은 분야: 고른 분야마다 1개씩(바로 가능 → 없으면 '준비하면 가능') → 바로 가능한 잡 최대 3개까지
+  //    → 합쳐서 2개가 안 되면 '준비하면 가능' 잡으로 최소 2개 보장
+  const fields = a.Q1 || [];
+  const inField = (f, e) => FIELD_JOBS[f].includes(e.job.no);
+  for (const f of fields) {
+    if (out.some(e => inField(f, e))) continue;
+    for (const e of ready.concat(near)) if (inField(f, e) && add(e)) break;
   }
-  out.sort((x, y) => y.score - x.score);
+  const wantedCount = () => out.filter(e => inFields(fields, e.job)).length;
+  for (const e of ready) { if (wantedCount() >= WANT_READY_MAX) break; if (inFields(fields, e.job)) add(e); }
+  for (const e of near)  { if (wantedCount() >= WANT_MIN) break;       if (inFields(fields, e.job)) add(e); }
+  // 2) 남은 칸: 바로 가능한 다른 잡 + 하고 싶은 분야의 '준비하면 가능' 잡을 점수순으로 (준비 필요 잡은 최대 3개)
+  const rest = ready.concat(near.filter(e => inFields(fields, e.job))).sort(byRank);
+  for (const e of rest) {
+    if (out.length >= MAX_RESULTS) break;
+    if (e.soft.length && out.filter(o => o.soft.length).length >= MAX_CONDITIONAL) continue;
+    add(e);
+  }
+  // 3) 안전망: 2개가 안 되면 준비가 필요한 잡으로 채움 (조건 부족이 적은 순)
+  const relaxed = [];
+  if (out.length < MIN_RESULTS) {
+    const rest = evaluated.filter(e => !out.includes(e) && e.soft.length > 0)
+      .sort((x, y) => x.soft.length - y.soft.length || byRank(x, y));
+    for (const e of rest) { if (out.length >= MIN_RESULTS) break; out.push(e); }
+    if (rest.length) relaxed.push('지금 바로 할 수 있는 일이 적어 준비가 필요한 일도 함께 보여드려요');
+  }
+  out.sort(byRank);
 
   return {
     count: out.length,
-    pool_size: pool.length,
+    pool_size: ready.length,
     relaxed,
-    results: out.map(it => ({
-      no: it.job.no, name: it.job.name, type: it.job.type_name,
-      conditional: it.conditional || null,
-      concept: it.job.concept, cost: it.job.cost, time: it.job.time,
-      income: it.job.income_max ? `월 ${it.job.income_min}~${it.job.income_max}만원${it.job.income_est ? '(추정)' : ''}` : it.job.income_raw || null,
-      score: it.score, reasons: it.reasons,
-    })),
+    results: out.map(e => {
+      const j = e.job;
+      return {
+        no: j.no, name: j.name, type: j.type_name,
+        conditional: e.soft.length ? e.soft : null,
+        checks: {
+          want: inFields(a.Q1, j),
+          strength: (a.Q9 || []).some(k => strengthHit(k, j)) || (a.Q8 || []).some(x => expHit(x, j)) || licenseHit(a.Q12, j),
+          ready: e.soft.length === 0,
+        },
+        concept: j.concept, cost: j.cost, time: j.time,
+        income: j.income_max ? `월 ${j.income_min}~${j.income_max}만원${j.income_est ? '(추정)' : ''}` : j.income_raw || null,
+        score: Math.round(e.score * 100) / 100, reasons: buildReasons(a, j, e.soft),
+      };
+    }),
   };
 }
 
-// Q14 주관식 자격명 → 유형 보너스 계산 (명세 §4.4)
+// Q12 주관식 자격명 → 유형 보너스 계산
 function licenseTypeBonus(name) {
   const n = String(name || '');
   const types = new Set();
@@ -330,4 +307,7 @@ function licenseTypeBonus(name) {
   return [...types];
 }
 
-module.exports = { recommend, licenseTypeBonus, layer1Pass, scoreJob, OUTDOOR_JOBS, VEHICLE_JOBS, SENIOR_JOBS, KIDS_JOBS, INST_JOBS, TRAVEL_JOBS, PET_JOBS, CAPITAL_JOBS, SIMPLE_JOBS, PRO_JOBS, POPULAR_JOBS, Q28_PREF_MAP };
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { recommend, licenseTypeBonus, conditionCheck, scoreJob, W, FIELD_JOBS, FIELD_NAMES, CAR_REQUIRED,
+    SIMPLE_JOBS, PRO_JOBS, POPULAR_JOBS, MAX_RESULTS, MIN_RESULTS, MAX_SOFT_FAILS, WANT_MIN };
+}
